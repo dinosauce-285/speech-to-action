@@ -1,0 +1,19 @@
+{
+  "name": "speech-to-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Voice → JSON command API (Groq Whisper + Llama) with a Next.js test client",
+  "packageManager": "pnpm@11.5.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @speech-to-action/api dev",
+    "dev:web": "pnpm --filter @speech-to-action/web dev",
+    "build": "pnpm -r build",
+    "format": "prettier --write \"apps/**/src/**/*.{ts,tsx}\" \"apps/**/app/**/*.{ts,tsx}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

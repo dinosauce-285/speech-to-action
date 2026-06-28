@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice → JSON Command · Project Plan</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c232c;
+    --border: #2a323d;
+    --text: #e6edf3;
+    --muted: #9aa7b4;
+    --accent: #4f9dff;
+    --accent-2: #7ee787;
+    --warn: #f2cc60;
+    --pink: #ff7b9c;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 96px; }
+  header.hero {
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, #161b22 0%, #1b2330 100%);
+    border-radius: var(--radius);
+    padding: 36px 32px;
+    margin-bottom: 32px;
+  }
+  header.hero .tag {
+    display: inline-block; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--accent); padding: 3px 10px; border-radius: 99px; margin-bottom: 14px;
+  }
+  h1 { margin: 0 0 8px; font-size: 30px; }
+  .sub { color: var(--muted); font-size: 16px; margin: 0; }
+  .pill-row { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 4px 12px; border-radius: 99px; }
+
+  h2 { font-size: 22px; margin: 44px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; margin: 24px 0 8px; color: var(--text); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px;
+  }
+  .muted { color: var(--muted); }
+  code, .mono { font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 13px; }
+  code { background: var(--panel-2); padding: 2px 6px; border-radius: 5px; color: var(--accent-2); }
+  pre {
+    background: #0a0d12; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: #c9d1d9; }
+
+  /* flow diagram */
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0; margin: 8px 0; }
+  .flow .step {
+    flex: 1; min-width: 150px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; text-align: center; position: relative;
+  }
+  .flow .step .n { font-size: 11px; color: var(--accent); font-weight: 700; }
+  .flow .step .t { font-weight: 600; margin: 4px 0; font-size: 14px; }
+  .flow .step .d { font-size: 12px; color: var(--muted); }
+  .flow .arrow { display: flex; align-items: center; color: var(--accent); font-size: 22px; padding: 0 6px; }
+  @media (max-width: 720px){ .flow .arrow { transform: rotate(90deg); width: 100%; justify-content:center; } }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* open questions */
+  .q { border-left: 3px solid var(--warn); background: var(--panel); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-bottom: 18px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .q .qhead { display: flex; align-items: baseline; gap: 10px; }
+  .q .qid { font-family: monospace; color: var(--warn); font-weight: 700; }
+  .q h3 { margin: 0 0 10px; }
+  .opt { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .opt .ohead { font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .opt .body { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; letter-spacing:.3px;}
+  .badge.rec { background: rgba(126,231,135,.15); color: var(--accent-2); border:1px solid rgba(126,231,135,.4); }
+  .badge.alt { background: rgba(154,167,180,.12); color: var(--muted); border:1px solid var(--border); }
+  .rec-line { margin-top: 10px; font-size: 13px; color: var(--accent-2); }
+  .rec-line b { color: var(--accent-2); }
+
+  .legend { font-size: 13px; color: var(--muted); }
+  ul.clean { padding-left: 20px; }
+  ul.clean li { margin: 6px 0; }
+  .scope-in { color: var(--accent-2); }
+  .scope-out { color: var(--pink); }
+  .small { font-size: 13px; }
+  a { color: var(--accent); }
+  .toc { columns: 2; column-gap: 24px; font-size: 14px; }
+  .toc a { display:block; padding:3px 0; color: var(--text); text-decoration: none; }
+  .toc a:hover { color: var(--accent); }
+  hr.soft { border:0; border-top:1px solid var(--border); margin: 28px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">Project Plan · API-first</span>
+    <h1>Voice → JSON Command</h1>
+    <p class="sub">Từ lời nói (tiếng Việt) → chuỗi JSON điều khiển hợp lệ. <b>Sản phẩm chính là API</b>; frontend chỉ là client để test API.</p>
+    <div class="pill-row">
+      <span class="pill">Next.js</span>
+      <span class="pill">NestJS</span>
+      <span class="pill">Groq Whisper (STT)</span>
+      <span class="pill">Groq Llama 3.3 70B</span>
+      <span class="pill">JSON Schema Validation</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <strong>Mục lục</strong>
+    <div class="toc" style="margin-top:10px">
+      <a href="#scope">0 · Phạm vi (Scope)</a>
+      <a href="#overview">1 · Kiến trúc tổng quan</a>
+      <a href="#stack">2 · Tech Stack</a>
+      <a href="#flow">3 · Luồng logic chi tiết</a>
+      <a href="#contract">4 · Hợp đồng dữ liệu (API & JSON)</a>
+      <a href="#questions">5 · Open Questions (cần chốt)</a>
+      <a href="#milestones">6 · Lộ trình triển khai</a>
+      <a href="#risks">7 · Rủi ro &amp; lưu ý</a>
+    </div>
+  </div>
+
+  <!-- SCOPE -->
+  <h2 id="scope">0 · Phạm vi (Scope)</h2>
+  <div class="card">
+    <p style="margin-top:0">Mục tiêu cốt lõi: <b>nhận text → trả về JSON lệnh hợp lệ</b>, đóng gói thành <b>API</b>. Frontend (nút micro + STT) chỉ là <b>client để test API có chạy đúng không</b>, không phải trọng tâm. Điều khiển xe vật lý tách rời, không bắt buộc cho MVP.</p>
+    <p class="small muted">Ưu tiên build &amp; test theo thứ tự: <b>① API (NestJS)</b> → test bằng curl/Postman → <b>② client web</b> chỉ để demo end-to-end.</p>
+    <table>
+      <tr><th>Trong phạm vi (MVP)</th><th>Ngoài phạm vi / tùy chọn</th></tr>
+      <tr>
+        <td class="small">
+          <span class="scope-in">✓</span> Thu giọng nói trên web<br>
+          <span class="scope-in">✓</span> Speech-to-Text → văn bản<br>
+          <span class="scope-in">✓</span> Gửi text lên backend<br>
+          <span class="scope-in">✓</span> LLM phân tích ý định → JSON<br>
+          <span class="scope-in">✓</span> Validate schema JSON<br>
+          <span class="scope-in">✓</span> Trả JSON về frontend hiển thị
+        </td>
+        <td class="small">
+          <span class="scope-out">○</span> Điều khiển xe / MQTT / EV3<br>
+          <span class="scope-out">○</span> Authentication (Firebase)<br>
+          <span class="scope-out">○</span> Lưu lịch sử / Macros (Supabase)<br>
+          <span class="scope-out">○</span> Multi-user, phân quyền<br>
+          <span class="scope-out">○</span> Mô phỏng 3D / animation xe
+        </td>
+      </tr>
+    </table>
+    <p class="small muted" style="margin-bottom:0">→ Auth & DB vẫn có trong thiết kế gốc, nhưng <b>có thể bật sau</b>. MVP có thể chạy không cần đăng nhập để demo nhanh “voice → JSON”.</p>
+  </div>
+
+  <!-- OVERVIEW -->
+  <h2 id="overview">1 · Kiến trúc tổng quan</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="step"><div class="n">01</div><div class="t">🎙️ Thu âm</div><div class="d">MediaRecorder ghi audio + visualizer</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">02</div><div class="t">🔌 Gửi audio</div><div class="d">POST file → NestJS</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">03</div><div class="t">📝 STT</div><div class="d">NestJS → Groq Whisper → text</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">04</div><div class="t">🧠 LLM</div><div class="d">Prompt → trích ý định</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">05</div><div class="t">✅ JSON</div><div class="d">Validate + trả về</div></div>
+    </div>
+    <p class="small muted" style="margin-bottom:0">Nguyên tắc thiết kế: tách rõ <b>“hiểu ngôn ngữ”</b> (LLM tạo JSON) khỏi <b>“thực thi vật lý”</b>. Đổi xe EV3 → Arduino sau này không ảnh hưởng luồng tạo JSON.</p>
+  </div>
+
+  <!-- STACK -->
+  <h2 id="stack">2 · Tech Stack</h2>
+  <div class="card">
+    <table>
+      <tr><th>Lớp</th><th>Công nghệ</th><th>Vai trò</th><th>MVP?</th></tr>
+      <tr><td>Frontend</td><td>Next.js (React) + Tailwind</td><td>UI nút micro, visualizer, thu âm, hiển thị JSON</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>Speech-to-Text</td><td>Groq Whisper (<code>whisper-large-v3</code>)</td><td>Backend nhận audio → text tiếng Việt (<code>language: "vi"</code>)</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>Backend</td><td>NestJS (TypeScript)</td><td>API gateway, prompt engineering, validate</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>AI / NLP</td><td>Groq <code>llama-3.3-70b-versatile</code></td><td>Phân tích ý định → JSON (chung provider với STT)</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>Validation</td><td>Zod / class-validator</td><td>Kiểm tra schema JSON đầu ra</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>Auth (MVP)</td><td>API Key ở header <code>X-API-Key</code></td><td>Guard so sánh với env <code>API_KEY</code>, sai → 401</td><td><span class="badge rec">Có</span></td></tr>
+      <tr><td>Auth (sau)</td><td>Firebase Authentication</td><td>Đăng nhập 3rd-party khi cần multi-user</td><td><span class="badge alt">Sau</span></td></tr>
+      <tr><td>Database</td><td>Supabase (PostgreSQL)</td><td>Audit log câu lệnh, lưu Macros</td><td><span class="badge alt">Sau</span></td></tr>
+    </table>
+  </div>
+
+  <!-- FLOW -->
+  <h2 id="flow">3 · Luồng logic chi tiết</h2>
+
+  <div class="card">
+    <h3>Giai đoạn 1 — Giao diện &amp; ghi âm (Next.js, chỉ để test)</h3>
+    <ul class="clean small">
+      <li>Màn hình chính: 1 nút micro nổi bật, trạng thái mặc định “Sẵn sàng”.</li>
+      <li>Người dùng nhấn giữ / click để nói → hiện hiệu ứng sóng âm (visualizer) làm feedback.</li>
+      <li>Dùng <code>MediaRecorder</code> ghi audio (vd <code>.webm</code>/<code>.wav</code>) — <b>không</b> dùng Web Speech API nữa. STT sẽ do backend gọi Groq Whisper (xem <a href="#q2">Q2</a>).</li>
+      <li>Kết thúc: thu được file audio blob để gửi lên API.</li>
+    </ul>
+
+    <h3>Giai đoạn 2 — Gọi API (Client → Server)</h3>
+    <ul class="clean small">
+      <li>POST <code>/api/v1/robot/command/audio</code> (multipart) đính kèm file audio + header <code>X-API-Key</code>.</li>
+      <li>(Hoặc test nhanh không cần ghi âm: POST <code>/command</code> với <code>{ text }</code> sẵn.)</li>
+    </ul>
+
+    <h3>Giai đoạn 3 — STT + Prompt engineering (NestJS)</h3>
+    <ul class="clean small">
+      <li>Guard kiểm tra <code>X-API-Key</code> khớp env <code>API_KEY</code> → sai/thiếu trả <code>401</code>.</li>
+      <li><b>STT:</b> NestJS gọi Groq <code>audio/transcriptions</code> (model <code>whisper-large-v3</code>, <code>language: "vi"</code>) → nhận text.</li>
+      <li>Bọc text vào <b>System Prompt</b> định nghĩa sẵn các action + tham số hợp lệ.</li>
+    </ul>
+    <pre><code>SYSTEM: Bạn là bộ điều khiển robot. Phân tích câu nói và trả về MẢNG JSON
+các bước di chuyển. Action cho phép: forward, backward, left, right, stop.
+Mỗi bước có "action" và "duration" (giây). KHÔNG giải thích thêm.
+
+USER: cho xe chạy tới một đoạn rồi quẹo phải</code></pre>
+
+    <h3>Giai đoạn 4 — LLM → JSON (Groq <code>llama-3.3-70b-versatile</code>)</h3>
+    <ul class="clean small">
+      <li>Gọi Groq chat completions với <code>response_format: { type: "json_object" }</code>, <code>temperature: 0</code> để ép trả JSON thuần.</li>
+      <li>NestJS parse + validate bằng Zod. Nếu sai schema → retry / trả lỗi rõ ràng (xem <a href="#q4">Q4</a>).</li>
+      <li>(Tùy chọn) Ghi log vào Supabase.</li>
+      <li>Trả JSON về frontend hiển thị.</li>
+    </ul>
+  </div>
+
+  <!-- CONTRACT -->
+  <h2 id="contract">4 · Hợp đồng dữ liệu (API &amp; JSON)</h2>
+  <div class="card">
+    <h3>Request A — gửi audio (luồng chính)</h3>
+    <pre><code>POST /api/v1/robot/command/audio
+Content-Type: multipart/form-data
+X-API-Key: &lt;api_key&gt;
+
+file: &lt;blob audio .webm/.wav&gt;   # backend gọi Groq Whisper → text → LLM</code></pre>
+    <h3>Request B — gửi text (test nhanh)</h3>
+    <pre><code>POST /api/v1/robot/command
+Content-Type: application/json
+X-API-Key: &lt;api_key&gt;
+
+{ "text": "cho xe chạy tới một đoạn rồi quẹo phải" }</code></pre>
+    <p class="small muted">Auth MVP: 1 Guard so sánh header <code>X-API-Key</code> với env <code>API_KEY</code>. Sai/thiếu → <code>401</code>. Cả 2 endpoint dùng chung lõi <i>text → LLM → JSON</i>; endpoint audio chỉ thêm bước STT (Groq Whisper) ở đầu.</p>
+    <h3>Response (thành công) — MVP</h3>
+    <pre><code>{
+  "status": "success",
+  "original_text": "cho xe chạy tới một đoạn rồi quẹo phải",
+  "commands": [
+    { "action": "forward", "duration": 2 },
+    { "action": "right",   "duration": 1 }
+  ]
+}</code></pre>
+    <p class="small muted">MVP chỉ dùng <b>tham số cơ bản</b> (<code>action</code> + <code>duration</code>, tất cả time-based, không cần cảm biến). Bộ tham số đầy đủ là phần mở rộng sau.</p>
+    <h3>Response (lỗi / không hiểu)</h3>
+    <pre><code>{
+  "status": "error",
+  "original_text": "...",
+  "reason": "Không nhận diện được hành động hợp lệ",
+  "commands": []
+}</code></pre>
+    <p class="small muted" style="margin-bottom:0">Bộ tham số đầy đủ của mỗi <code>command</code> → xem phần <a href="#params">4b · Tham số khối di chuyển</a> ngay bên dưới.</p>
+  </div>
+
+  <!-- MOVEMENT PARAMETERS RESEARCH -->
+  <h2 id="params">4b · Tham số khối di chuyển <span class="muted small">(research)</span></h2>
+  <div class="card">
+    <p style="margin-top:0">Mình research đầy đủ rồi rút xuống mức cơ bản cho MVP. Hai chuẩn điều khiển <b>differential-drive</b> (đúng mô hình EV3 / xe Arduino) tham khảo:</p>
+    <ul class="clean small">
+      <li><b>EV3 (Move Steering):</b> <code>power</code> (−100…100) + <code>steering</code> (−100…100) + chế độ dừng <i>seconds / degrees / rotations</i>. Steering ±100 = xoay tại chỗ, ±50 = vòng cung, 0 = thẳng.</li>
+      <li><b>Kinematic:</b> vận tốc dài <code>v</code> + vận tốc góc <code>ω</code>, bán kính cung <code>R</code> (R=0 = xoay tại chỗ).</li>
+    </ul>
+
+    <div class="opt" style="margin-top:8px; border-color: var(--accent-2)">
+      <div class="ohead">✅ MVP — chỉ 2 trường cơ bản <span class="badge rec">Dùng cái này</span></div>
+      <div class="body">Tất cả time-based → <b>không cần encoder / cảm biến / la bàn</b>. Hợp với giọng nói mơ hồ ("chạy một đoạn", "quẹo phải"). Rẽ cũng tính bằng giây thay vì độ.</div>
+    </div>
+    <table>
+      <tr><th>Tham số</th><th>Kiểu · đơn vị</th><th>Bắt buộc</th><th>Ý nghĩa</th></tr>
+      <tr><td><code>action</code></td><td>enum</td><td>✓</td><td><code>forward</code> · <code>backward</code> · <code>left</code> · <code>right</code> · <code>stop</code></td></tr>
+      <tr><td><code>duration</code></td><td>number · giây</td><td>✓ (trừ <code>stop</code>)</td><td>Chạy/rẽ trong bao nhiêu giây. <code>stop</code> thì không cần.</td></tr>
+    </table>
+
+    <h3>Zod schema — MVP</h3>
+    <pre><code>const Command = z.object({
+  action:   z.enum(['forward','backward','left','right','stop']),
+  duration: z.number().positive().optional(),  // giây; bỏ trống cho stop
+});
+const Commands = z.array(Command);</code></pre>
+
+    <details style="margin-top:14px">
+      <summary class="small muted" style="cursor:pointer">▸ Bộ tham số ĐẦY ĐỦ (mở rộng sau — không làm ở MVP)</summary>
+      <div style="margin-top:12px">
+        <p class="small muted">Khi nối phần cứng thật & có cảm biến, mở rộng schema với các trường optional sau (vẫn tương thích ngược với MVP):</p>
+        <table>
+          <tr><th>Tham số</th><th>Kiểu · đơn vị</th><th>Áp dụng</th><th>Ghi chú</th></tr>
+          <tr><td><code>speed</code></td><td>0–100</td><td>mọi action</td><td>% công suất, default 50. Map sang power(EV3)/v(kinematic).</td></tr>
+          <tr><td><code>until</code></td><td>enum</td><td>mọi action</td><td><code>time</code>/<code>distance</code>/<code>angle</code>/<code>rotations</code>/<code>forever</code></td></tr>
+          <tr><td><code>distance</code></td><td>number · cm</td><td>forward/backward</td><td>Cần encoder/odometry.</td></tr>
+          <tr><td><code>rotations</code></td><td>number · vòng</td><td>forward/backward</td><td>Kiểu EV3 — đếm vòng quay motor.</td></tr>
+          <tr><td><code>angle</code></td><td>number · độ (°)</td><td>left/right</td><td>Góc quay chính xác (vd 90°), cần encoder/la bàn.</td></tr>
+          <tr><td><code>turn_type</code></td><td>enum</td><td>left/right</td><td><code>pivot</code> (tại chỗ) / <code>arc</code> (vòng cung) / <code>point</code> (quanh 1 bánh).</td></tr>
+          <tr><td><code>radius</code></td><td>number · cm</td><td>turn_type=arc</td><td>Bán kính cung; 0 = xoay tại chỗ.</td></tr>
+          <tr><td><code>ramp</code></td><td>number · giây</td><td>mọi action</td><td>Thời gian tăng/giảm tốc chống giật.</td></tr>
+          <tr><td><code>brake</code></td><td>boolean</td><td>stop</td><td><code>true</code> phanh giữ / <code>false</code> thả trôi.</td></tr>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <!-- OPEN QUESTIONS -->
+  <h2 id="questions">5 · Open Questions <span class="muted small">(tất cả đã chốt ✅)</span></h2>
+  <p class="legend">Q1 Groq Llama 3.3 70B · Q2 Groq Whisper · Q3 JSON cơ bản · Q4 retry 1 lần · Q5 API key · Q6 tiếng Việt + 5 action cố định.</p>
+
+  <div class="q" id="q1" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q1</span><h3>Model LLM phân tích ý định? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">
+      Quyết định: <b>Groq <code>llama-3.3-70b-versatile</code></b> — chung provider/key với STT, hiểu tiếng Việt + bám JSON tốt, rất nhanh trên Groq.
+      <ul class="clean" style="margin-top:8px">
+        <li><b>Tham số:</b> <code>response_format: { type: "json_object" }</code>, <code>temperature: 0</code> để output ổn định.</li>
+        <li><b>Giá:</b> ~$0.59/$0.79 per 1M token (in/out), context 131K — thừa cho prompt ngắn.</li>
+        <li><b>Khởi đầu rẻ hơn:</b> có thể tạm dùng <code>llama-3.1-8b-instant</code> ($0.05/$0.08) rồi nâng lên 70B nếu thiếu chính xác.</li>
+        <li>⚠️ Tránh <code>qwen3-32b</code> &amp; <code>llama-4-scout-17b</code> (đã deprecate 17/06/2026).</li>
+      </ul>
+      Nên bọc trong 1 service trừu tượng để đổi model/provider sau dễ dàng.
+    </div>
+  </div>
+
+  <div class="q" id="q2" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q2</span><h3>Speech-to-Text lấy ở đâu? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">
+      Quyết định: <b>Groq Whisper</b> (server-side). Frontend ghi audio bằng <code>MediaRecorder</code> → gửi lên NestJS → NestJS gọi Groq <code>audio/transcriptions</code>.
+      <ul class="clean" style="margin-top:8px">
+        <li><b>Model:</b> <code>whisper-large-v3</code> (WER 10.3%, chính xác hơn — lệnh điều khiển xe error-sensitive). Muốn rẻ/nhanh hơn thì <code>whisper-large-v3-turbo</code> ($0.04/giờ).</li>
+        <li><b>Tham số:</b> <code>language: "vi"</code>, <code>temperature: 0</code>, <code>response_format: "json"</code>. Dùng endpoint <b>transcriptions</b> (giữ tiếng Việt), KHÔNG dùng translations (chỉ ra tiếng Anh).</li>
+        <li><b>Chi phí:</b> có free tier (rate-limit, file ≤ 25MB) đủ cho demo; tối thiểu tính phí 10s/request.</li>
+        <li><b>API key Groq</b> chỉ để ở backend, không lộ ra frontend.</li>
+      </ul>
+      Lý do bỏ Web Speech API: tiếng Việt không ổn định, phụ thuộc trình duyệt (Safari/Firefox kém).
+    </div>
+  </div>
+
+  <div class="q" id="q3" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q3</span><h3>JSON command chi tiết tới đâu? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">Quyết định: MVP chỉ <b><code>action</code> + <code>duration</code></b> (xem <a href="#params">4b</a>). Mọi tham số nâng cao (speed, angle, radius, distance...) để dạng optional, mở rộng khi nối phần cứng thật.</div>
+  </div>
+
+  <div class="q" id="q4" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q4</span><h3>Xử lý khi LLM trả JSON sai? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">Quyết định: <b>Zod validate + retry 1 lần</b> (gọi lại Groq kèm thông báo lỗi để self-correct). Vẫn fail → trả <code>status: "error"</code>. Luôn trả response cấu trúc cố định để frontend xử lý đồng nhất.</div>
+  </div>
+
+  <div class="q" id="q5" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q5</span><h3>Auth &amp; Database cho MVP? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">Quyết định: chỉ <b>check API key ở header <code>X-API-Key</code></b> (so với env <code>API_KEY</code>). Không Firebase, không Supabase ở giai đoạn này. Bật sau khi cần multi-user / lưu lịch sử / macros.</div>
+  </div>
+
+  <div class="q" id="q6" style="border-left-color: var(--accent-2)">
+    <div class="qhead"><span class="qid" style="color:var(--accent-2)">Q6</span><h3>Ngôn ngữ &amp; phạm vi câu lệnh? <span class="badge rec">ĐÃ CHỐT</span></h3></div>
+    <div class="body small" style="color:var(--muted)">
+      Quyết định: <b>chỉ tiếng Việt</b> + <b>tập action cố định (closed set)</b> gồm 5 lệnh: <code>forward</code>, <code>backward</code>, <code>left</code>, <code>right</code>, <code>stop</code>.
+      <ul class="clean" style="margin-top:8px">
+        <li><b>"Tập action cố định"</b> = LLM chỉ được chọn trong 5 action này (ép bằng <code>z.enum([...])</code>), không được bịa lệnh mới → validate chắc chắn + an toàn cho xe.</li>
+        <li>Câu nói ngoài phạm vi (vd "hát một bài") → trả <code>status: "error"</code>, KHÔNG sinh lệnh bậy.</li>
+        <li>STT set <code>language: "vi"</code>; System Prompt liệt kê rõ 5 action cho phép.</li>
+      </ul>
+      Đa ngôn ngữ (Việt + Anh) để mở rộng sau nếu cần.
+    </div>
+  </div>
+
+  <!-- MILESTONES -->
+  <h2 id="milestones">6 · Lộ trình triển khai</h2>
+  <div class="card">
+    <table>
+      <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th></tr>
+      <tr><td>M1</td><td>Khung API</td><td>Khởi tạo NestJS, endpoint rỗng <code>/command</code>, Guard <code>X-API-Key</code>, CORS</td><td>curl có key → 200, không key → 401</td></tr>
+      <tr><td>M2</td><td>Core text→JSON ⭐</td><td>Tích hợp LLM, System Prompt, Zod validate theo schema tham số đầy đủ</td><td>curl/Postman gửi text → nhận JSON đúng schema. <b>Đây là sản phẩm.</b></td></tr>
+      <tr><td>M3</td><td>STT endpoint</td><td><code>POST /command/audio</code>: nhận file → gọi Groq Whisper (<code>whisper-large-v3</code>, <code>vi</code>) → tái dùng lõi M2</td><td>curl gửi file audio tiếng Việt → nhận JSON</td></tr>
+      <tr><td>M4</td><td>Bền vững hóa API</td><td>Retry/self-correct khi validate fail, response lỗi chuẩn, rate-limit</td><td>API ổn định với câu nói mơ hồ / sai</td></tr>
+      <tr><td>M5</td><td>Client test</td><td>Nút micro + visualizer + <code>MediaRecorder</code> → gửi audio lên API → hiện JSON</td><td>Demo end-to-end voice→JSON</td></tr>
+      <tr><td>M6+</td><td>Tùy chọn</td><td>Firebase auth, Supabase log, mở rộng schema, MQTT</td><td>Sẵn sàng production / nối phần cứng</td></tr>
+    </table>
+  </div>
+
+  <!-- RISKS -->
+  <h2 id="risks">7 · Rủi ro &amp; lưu ý</h2>
+  <div class="card">
+    <ul class="clean small">
+      <li><b>Định dạng audio:</b> <code>MediaRecorder</code> thường ra <code>.webm/opus</code> — Groq có hỗ trợ, nhưng nên test; cần thì convert sang <code>.wav</code>. File ≤ 25MB (free tier).</li>
+      <li><b>Chi phí Groq:</b> tối thiểu tính phí 10s/request; free tier có rate-limit. Câu lệnh ngắn vẫn ổn cho demo.</li>
+      <li><b>Chi phí LLM:</b> mỗi lệnh = 1 STT + 1 LLM call. Cần rate-limit / chọn model rẻ (GPT-4o-mini, Gemini Flash).</li>
+      <li><b>LLM "bịa" duration:</b> câu nói mơ hồ ("một đoạn") → model tự đoán số giây. Cần System Prompt quy ước giá trị mặc định.</li>
+      <li><b>Bảo mật API key:</b> key Groq &amp; LLM CHỈ để ở backend (NestJS), không bao giờ lộ ra frontend.</li>
+      <li><b>Quyền micro:</b> trình duyệt yêu cầu HTTPS + cấp quyền; xử lý trường hợp người dùng từ chối.</li>
+      <li><b>Độ trễ:</b> tổng = upload audio + STT (Groq) + LLM. Groq STT rất nhanh; hiển thị loading rõ ràng.</li>
+    </ul>
+  </div>
+
+  <hr class="soft">
+  <p class="small muted">✅ <b>Tất cả quyết định đã chốt.</b> Stack: Groq (Whisper STT + Llama 3.3 70B) · NestJS API · API key header · JSON cơ bản (<code>action</code>+<code>duration</code>) · tiếng Việt + 5 action cố định. Sẵn sàng code <b>M1–M3</b> (khung API + text→JSON + STT endpoint). Chỉ cần 1 Groq API key để bắt đầu.</p>
+
+</div>
+</body>
+</html>
