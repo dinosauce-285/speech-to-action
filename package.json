@@ -8,6 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "dev": "pnpm --parallel --filter @speech-to-action/api --filter @speech-to-action/web dev",
     "dev:api": "pnpm --filter @speech-to-action/api dev",
     "dev:web": "pnpm --filter @speech-to-action/web dev",
     "build": "pnpm -r build",

@@ -21,6 +21,14 @@ export class RobotService {
   async fromAudio(file: Buffer, filename: string): Promise<CommandResult> {
     const text = await this.groq.transcribe(file, filename);
     this.logger.log(`Transcribed: "${text}"`);
+    if (!text) {
+      return {
+        status: 'error',
+        original_text: '',
+        commands: [],
+        reason: 'Không nghe được giọng nói (audio im lặng hoặc không rõ). Hãy thử nói lại rõ hơn.',
+      };
+    }
     return this.fromText(text);
   }
 
