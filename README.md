@@ -20,13 +20,80 @@ See [plan.html](plan.html) for the full design and decisions.
 | Auth (MVP) | `X-API-Key` header vs `API_KEY` env |
 | Test client | Next.js + Tailwind |
 
-## Layout
+## Cấu trúc thư mục
+
+Monorepo dùng **pnpm workspaces**: 2 app độc lập trong `apps/`, chia sẻ cùng lockfile/cấu hình ở gốc.
 
 ```
-apps/
-  api/   NestJS API — the product
-  web/   Next.js test client
+speech-to-action/
+├─ apps/
+│  ├─ api/                       # NestJS API — đây là SẢN PHẨM chính
+│  │  ├─ src/
+│  │  │  ├─ main.ts              # bootstrap: prefix /api/v1, bật CORS, đọc PORT
+│  │  │  ├─ app.module.ts        # module gốc, nạp ConfigModule + RobotModule
+│  │  │  ├─ config/
+│  │  │  │  └─ configuration.ts  # gom biến env (PORT, API_KEY, groq.*)
+│  │  │  ├─ common/
+│  │  │  │  ├─ guards/
+│  │  │  │  │  └─ api-key.guard.ts      # chặn request thiếu/sai X-API-Key → 401
+│  │  │  │  └─ zod-validation.pipe.ts   # validate body request bằng Zod
+│  │  │  ├─ groq/
+│  │  │  │  ├─ groq.module.ts
+│  │  │  │  └─ groq.service.ts   # client Groq: transcribe() (STT) + complete() (LLM)
+│  │  │  └─ robot/
+│  │  │     ├─ robot.controller.ts  # 2 endpoint: /command (text) & /command/audio
+│  │  │     ├─ robot.service.ts     # LÕI: text → LLM → Zod validate → JSON (+ retry)
+│  │  │     ├─ robot.module.ts
+│  │  │     └─ command.schema.ts    # Zod schema + types (action + duration)
+│  │  └─ .env.example            # PORT, API_KEY, GROQ_API_KEY, model names
+│  │
+│  └─ web/                       # Next.js — CHỈ là client để test API
+│     ├─ app/
+│     │  ├─ page.tsx             # UI: gửi text, ghi âm, visualizer, hiện transcript
+│     │  ├─ layout.tsx
+│     │  └─ globals.css
+│     └─ .env.example            # NEXT_PUBLIC_API_BASE_URL, NEXT_PUBLIC_API_KEY
+│
+├─ plan.html                     # bản thiết kế đầy đủ + các quyết định đã chốt
+├─ pnpm-workspace.yaml           # khai báo apps/* là workspace
+└─ package.json                  # script gốc: dev:api, dev:web, build
 ```
+
+Nguyên tắc tách lớp trong `api/src/`: **controller** chỉ nhận request → **service** xử lý nghiệp vụ → **groq.service** là lớp gọi nhà cung cấp AI (bọc lại để sau đổi model/provider không ảnh hưởng chỗ khác).
+
+## Vì sao có 2 endpoint? (không phải 2 API)
+
+Thực ra chỉ có **1 API duy nhất** với **1 lõi xử lý chung** (`text → LLM → JSON`). Có 2 endpoint vì 2 cách *đưa input vào*:
+
+| Endpoint | Input | Dùng khi |
+| -------- | ----- | -------- |
+| `POST /robot/command` | JSON `{ text }` | **Test nhanh**: gõ thẳng câu lệnh bằng text, không cần micro/ghi âm. Bỏ qua bước STT nên rẻ + nhanh, dễ debug prompt/LLM. |
+| `POST /robot/command/audio` | file audio (multipart) | **Luồng thật**: người dùng nói → ghi âm → gửi lên. Backend chạy thêm bước Groq Whisper (STT) để ra text, rồi **tái dùng đúng lõi** của endpoint text. |
+
+Nói cách khác: endpoint audio = endpoint text + **1 bước STT cắm ở đầu**. Tách ra giúp bạn kiểm thử phần "hiểu ngôn ngữ" (LLM) riêng biệt với phần "nghe" (STT) — nếu kết quả sai, biết ngay lỗi ở khâu nào.
+
+## Flow hoạt động
+
+```
+[Web client]                    [NestJS API]                       [Groq]
+   │  🎙️ MediaRecorder ghi audio
+   │  (đồng thời vẽ visualizer)
+   │ ── POST /command/audio (file + X-API-Key) ─▶
+   │                          ① ApiKeyGuard: đúng key? sai → 401
+   │                          ② groq.transcribe(audio) ───────────▶ Whisper (vi) → text
+   │                          ③ groq.complete(system, text) ──────▶ Llama (JSON mode)
+   │                          ④ Zod validate → sai thì retry 1 lần
+   │                          ⑤ đóng gói { status, original_text, commands }
+   │ ◀──────────────────────── JSON ──────────────────────────────
+   │  hiện "câu vừa nói" (original_text) + JSON commands
+```
+
+Endpoint text (`/command`) đi đúng flow này nhưng **bỏ bước ②** — vì đã có text sẵn, vào thẳng bước ③. Đó chính là phần "lõi dùng chung".
+
+Điểm thiết kế đáng chú ý:
+- **Closed set 5 action** (`forward/backward/left/right/stop`) ép bằng `z.enum` → LLM không bịa được lệnh lạ, an toàn cho xe.
+- **Retry 1 lần**: nếu LLM trả JSON sai schema, gọi lại Groq kèm thông báo lỗi để tự sửa; vẫn fail → trả `status: "error"` thay vì crash.
+- **Tách "hiểu ngôn ngữ" khỏi "thực thi vật lý"**: API chỉ tạo JSON; sau này nối EV3/Arduino/MQTT không phải sửa luồng này.
 
 ## Setup
 

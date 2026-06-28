@@ -1,18 +1,28 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api/v1';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? '';
 
 export default function Home() {
   const [text, setText] = useState('cho xe chạy tới một đoạn rồi quẹo phải');
+  const [transcript, setTranscript] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  // Web Audio plumbing for the live visualizer.
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  // Clean up any leftover audio graph / animation frame on unmount.
+  useEffect(() => stopVisualizer, []);
 
   async function call(path: string, init: RequestInit) {
     setLoading(true);
@@ -23,6 +33,7 @@ export default function Home() {
         headers: { 'X-API-Key': API_KEY, ...(init.headers ?? {}) },
       });
       const json = await res.json();
+      setTranscript(typeof json.original_text === 'string' ? json.original_text : '');
       setResult(JSON.stringify(json, null, 2));
     } catch (err) {
       setResult(`Error: ${String(err)}`);
@@ -32,6 +43,7 @@ export default function Home() {
   }
 
   function sendText() {
+    setTranscript('');
     return call('/robot/command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -45,23 +57,93 @@ export default function Home() {
     return call('/robot/command/audio', { method: 'POST', body: form });
   }
 
+  /** Draw mic input as animated bars so the user sees their voice is being captured. */
+  function startVisualizer(stream: MediaStream) {
+    const audioCtx = new AudioContext();
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    audioCtxRef.current = audioCtx;
+    analyserRef.current = analyser;
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    const draw = () => {
+      const canvas = canvasRef.current;
+      const a = analyserRef.current;
+      if (!canvas || !a) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      a.getByteFrequencyData(data);
+      const { width, height } = canvas;
+      ctx.clearRect(0, 0, width, height);
+
+      const bars = 48;
+      const step = Math.floor(data.length / bars);
+      const gap = 2;
+      const barWidth = width / bars - gap;
+      for (let i = 0; i < bars; i++) {
+        const v = data[i * step] / 255; // 0..1
+        const barHeight = Math.max(2, v * height);
+        ctx.fillStyle = `rgb(${80 + v * 175}, ${230 - v * 80}, ${130})`;
+        ctx.fillRect(i * (barWidth + gap), (height - barHeight) / 2, barWidth, barHeight);
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    rafRef.current = requestAnimationFrame(draw);
+  }
+
+  function stopVisualizer() {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    analyserRef.current = null;
+    void audioCtxRef.current?.close();
+    audioCtxRef.current = null;
+    const canvas = canvasRef.current;
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
   async function toggleRecord() {
     if (recording) {
       recorderRef.current?.stop();
       return;
     }
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    setTranscript('');
+    setResult('');
+    // Better capture: mono + noise/echo handling reduces the silence that makes Whisper hallucinate.
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
     const recorder = new MediaRecorder(stream);
     chunksRef.current = [];
-    recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
     recorder.onstop = () => {
+      stopVisualizer();
       stream.getTracks().forEach((t) => t.stop());
       setRecording(false);
-      void sendAudio(new Blob(chunksRef.current, { type: 'audio/webm' }));
+      const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      // Guard: a near-empty blob means no audio was captured — sending it just makes Whisper hallucinate.
+      if (blob.size < 2000) {
+        setResult(
+          `Audio rỗng (${blob.size} bytes). Mic không thu được tiếng — kiểm tra quyền/thiết bị micro, ` +
+            'và xem thanh sóng có nhảy khi nói không. Hãy nói rõ ~1–2 giây rồi mới bấm Dừng.',
+        );
+        return;
+      }
+      void sendAudio(blob);
     };
     recorderRef.current = recorder;
     recorder.start();
     setRecording(true);
+    startVisualizer(stream);
   }
 
   return (
@@ -91,6 +173,20 @@ export default function Home() {
 
       <section className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900 p-5">
         <label className="text-sm font-medium text-slate-300">Ghi âm (gửi audio)</label>
+
+        {/* Live waveform — only meaningful while recording */}
+        <canvas
+          ref={canvasRef}
+          width={560}
+          height={72}
+          className={`w-full rounded-lg border border-slate-800 bg-slate-950 transition-opacity ${
+            recording ? 'opacity-100' : 'opacity-40'
+          }`}
+        />
+        {recording && (
+          <p className="text-xs text-emerald-400">● Đang nghe… hãy nói lệnh của bạn</p>
+        )}
+
         <button
           onClick={toggleRecord}
           disabled={loading}
@@ -101,6 +197,16 @@ export default function Home() {
           {recording ? '⏹ Dừng & gửi' : '🎙️ Bắt đầu ghi'}
         </button>
       </section>
+
+      {/* Transcribed sentence (original_text) shown right after speaking */}
+      {(transcript || loading) && (
+        <section className="flex flex-col gap-2 rounded-xl border border-sky-900 bg-sky-950/40 p-5">
+          <span className="text-sm font-medium text-sky-300">Câu bạn vừa nói</span>
+          <p className="text-lg text-slate-100">
+            {transcript || <span className="text-slate-500">…</span>}
+          </p>
+        </section>
+      )}
 
       <section className="flex flex-col gap-2">
         <span className="text-sm font-medium text-slate-300">
