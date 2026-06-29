@@ -130,6 +130,7 @@
       <a href="#questions">5 · Open Questions (cần chốt)</a>
       <a href="#milestones">6 · Lộ trình triển khai</a>
       <a href="#risks">7 · Rủi ro &amp; lưu ý</a>
+      <a href="#execution">8 · Bước kế tiếp · Cầu nối DJI (thực thi)</a>
     </div>
   </div>
 
@@ -158,7 +159,7 @@
         </td>
       </tr>
     </table>
-    <p class="small muted" style="margin-bottom:0">→ Auth & DB vẫn có trong thiết kế gốc, nhưng <b>có thể bật sau</b>. MVP có thể chạy không cần đăng nhập để demo nhanh “voice → JSON”.</p>
+    <p class="small muted" style="margin-bottom:0">→ Auth & DB vẫn có trong thiết kế gốc, nhưng <b>có thể bật sau</b>. MVP có thể chạy không cần đăng nhập để demo nhanh “voice → JSON”. <b>Điều khiển xe vật lý</b> giờ đã có kế hoạch chi tiết ở <a href="#execution">§8 (cầu nối DJI)</a> — bước kế tiếp sau khi MVP xong.</p>
   </div>
 
   <!-- OVERVIEW -->
@@ -379,14 +380,15 @@ const Commands = z.array(Command);</code></pre>
   <h2 id="milestones">6 · Lộ trình triển khai</h2>
   <div class="card">
     <table>
-      <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th></tr>
-      <tr><td>M1</td><td>Khung API</td><td>Khởi tạo NestJS, endpoint rỗng <code>/command</code>, Guard <code>X-API-Key</code>, CORS</td><td>curl có key → 200, không key → 401</td></tr>
-      <tr><td>M2</td><td>Core text→JSON ⭐</td><td>Tích hợp LLM, System Prompt, Zod validate theo schema tham số đầy đủ</td><td>curl/Postman gửi text → nhận JSON đúng schema. <b>Đây là sản phẩm.</b></td></tr>
-      <tr><td>M3</td><td>STT endpoint</td><td><code>POST /command/audio</code>: nhận file → gọi Groq Whisper (<code>whisper-large-v3</code>, <code>vi</code>) → tái dùng lõi M2</td><td>curl gửi file audio tiếng Việt → nhận JSON</td></tr>
-      <tr><td>M4</td><td>Bền vững hóa API</td><td>Retry/self-correct khi validate fail, response lỗi chuẩn, rate-limit</td><td>API ổn định với câu nói mơ hồ / sai</td></tr>
-      <tr><td>M5</td><td>Client test</td><td>Nút micro + visualizer + <code>MediaRecorder</code> → gửi audio lên API → hiện JSON</td><td>Demo end-to-end voice→JSON</td></tr>
-      <tr><td>M6+</td><td>Tùy chọn</td><td>Firebase auth, Supabase log, mở rộng schema, MQTT</td><td>Sẵn sàng production / nối phần cứng</td></tr>
+      <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th><th>Trạng thái</th></tr>
+      <tr><td>M1</td><td>Khung API</td><td>Khởi tạo NestJS, endpoint rỗng <code>/command</code>, Guard <code>X-API-Key</code>, CORS</td><td>curl có key → 200, không key → 401</td><td><span class="badge rec">✅ Done</span></td></tr>
+      <tr><td>M2</td><td>Core text→JSON ⭐</td><td>Tích hợp LLM, System Prompt, Zod validate theo schema tham số đầy đủ</td><td>curl/Postman gửi text → nhận JSON đúng schema. <b>Đây là sản phẩm.</b></td><td><span class="badge rec">✅ Done</span></td></tr>
+      <tr><td>M3</td><td>STT endpoint</td><td><code>POST /command/audio</code>: nhận file → gọi Groq Whisper (<code>whisper-large-v3</code>, <code>vi</code>) → tái dùng lõi M2</td><td>curl gửi file audio tiếng Việt → nhận JSON</td><td><span class="badge rec">✅ Done</span></td></tr>
+      <tr><td>M4</td><td>Bền vững hóa API</td><td>Retry/self-correct khi validate fail, response lỗi chuẩn, rate-limit</td><td>API ổn định với câu nói mơ hồ / sai</td><td><span class="badge rec">✅ Done</span><br><span class="small muted">rate-limit để sau</span></td></tr>
+      <tr><td>M5</td><td>Client test</td><td>Nút micro + visualizer + <code>MediaRecorder</code> → gửi audio lên API → hiện JSON</td><td>Demo end-to-end voice→JSON</td><td><span class="badge rec">✅ Done</span></td></tr>
+      <tr><td>M6+</td><td>Tùy chọn</td><td>Firebase auth, Supabase log, mở rộng schema, MQTT</td><td>Sẵn sàng production / nối phần cứng</td><td><span class="badge alt">⏳ Sau</span></td></tr>
     </table>
+    <p class="small muted" style="margin-bottom:0">✅ <b>MVP (M1–M5) đã hoàn thành & xác minh trong code</b> (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp = lớp thực thi vật lý → <a href="#execution">§8 · Cầu nối DJI</a>.</p>
   </div>
 
   <!-- RISKS -->
@@ -403,8 +405,118 @@ const Commands = z.array(Command);</code></pre>
     </ul>
   </div>
 
+  <!-- EXECUTION LAYER (NEXT STEP) -->
+  <h2 id="execution">8 · Bước kế tiếp · Lớp thực thi (đa nền tảng) — bridge đầu tiên: DJI <span class="muted small">(sau MVP)</span></h2>
+
+  <div class="card">
+    <p style="margin-top:0">MVP dừng ở <b>JSON lệnh hợp lệ</b>. Bước kế tiếp: biến JSON đó thành chuyển động thật. Vẫn giữ nguyên tắc gốc — <b>“hiểu ngôn ngữ” tách rời “thực thi vật lý”</b> — nhưng đẩy mạnh hơn: <b>backend là dịch vụ trung lập, phục vụ NHIỀU nền tảng robot</b> (DJI, EV3, Arduino…). Backend KHÔNG biết gì về DJI; nó chỉ xuất JSON lệnh trừu tượng.</p>
+    <p class="small" style="margin-bottom:0"><b>Bridge là một service hoàn toàn TÁCH RỜI backend</b> (low coupling). Mỗi nền tảng robot có một bridge riêng, tự dịch JSON chung → SDK của nó. Thêm/đổi robot = viết bridge mới, <b>không đụng vào backend</b>.</p>
+  </div>
+
+  <div class="card" style="border-color: var(--accent-2)">
+    <h3 style="margin-top:0">Quyết định kiến trúc <span class="badge rec">ĐÃ CHỐT</span></h3>
+    <table>
+      <tr><th>Vấn đề</th><th>Quyết định</th></tr>
+      <tr><td>Đường đi của JSON</td><td><b>Client tự forward.</b> Web nhận JSON từ backend rồi POST thẳng sang bridge. Backend 0% biết tới bridge → coupling thấp nhất.</td></tr>
+      <tr><td>Hợp đồng lệnh</td><td><b>Vocabulary chung, bridge tự map.</b> Backend luôn xuất 1 bộ lệnh trừu tượng; mỗi bridge map sang SDK của nó, bỏ qua action không hỗ trợ. Backend không bao giờ biết nền tảng.</td></tr>
+      <tr><td>Vị trí code</td><td><b>App riêng trong monorepo</b> — <code>apps/bridge</code> (Python), tiến trình & cổng riêng, KHÔNG import code backend.</td></tr>
+      <tr><td>Đồng bộ</td><td><b>Fire-and-forget</b>: bridge nhận lệnh → trả <code>202</code> ngay, robot chạy nền. Tránh treo request dài &amp; cho phép E-STOP độc lập. Kết quả/trạng thái hỏi sau qua endpoint status hoặc WebSocket nếu cần.</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <p class="small muted" style="margin:0">4 bước pipeline thực thi (lấy DJI làm ví dụ cho bridge đầu tiên):</p>
+    <div class="flow">
+      <div class="step"><div class="n">01</div><div class="t">📤 Phát JSON</div><div class="d">API/AI gửi mảng <code>commands</code> vào “Trạm trung chuyển” (PC chạy Python)</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">02</div><div class="t">🔍 Parse</div><div class="d">Python bóc JSON: bộ phận nào (khung gầm / súng / camera) + làm gì (tiến, lùi, bắn)</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">03</div><div class="t">🛰️ Dịch &amp; Truyền</div><div class="d">DJI SDK dịch sang mã máy của DJI → bắn qua sóng Wi-Fi</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="n">04</div><div class="t">🤖 Thực thi</div><div class="d">Robot nhận sóng → quay bánh / nhả đạn ngoài đời thực</div></div>
+    </div>
+    <p class="small muted" style="margin-bottom:0">Nói nôm na: <b>Quăng JSON → PC dịch ra sóng Wi-Fi → Robot chạy.</b></p>
+  </div>
+
+  <div class="card">
+    <h3>Thành phần mới: “Bridge” (service tách rời, mỗi nền tảng một cái)</h3>
+    <p class="small" style="margin-top:0">1 tiến trình Python chạy trên laptop <b>cùng mạng Wi-Fi với robot</b>. Nhận JSON lệnh chung → dịch sang SDK của nền tảng nó phụ trách. Backend không hề gọi tới bridge — <b>client mới là bên forward JSON</b>.</p>
+    <pre><code>                              ┌─▶ Bridge DJI     (robomaster) ─Wi-Fi─▶ RoboMaster
+NestJS API ─JSON─▶ Client ────┼─▶ Bridge EV3     (pybricks…)  ───────▶ EV3
+(trung lập,       (forward     └─▶ Bridge Arduino (serial…)   ───────▶ Arduino
+ đa nền tảng)      tới bridge)
+        ▲ backend KHÔNG biết bridge nào tồn tại — coupling thấp</code></pre>
+    <ul class="clean small">
+      <li><b>SDK (bridge DJI):</b> thư viện Python chính thức của DJI — <code>robomaster</code> (RoboMaster EP / S1). Cài: <code>pip install robomaster</code>.</li>
+      <li><b>Kết nối Wi-Fi:</b> hai chế độ — <i>router mode</i> (robot + laptop cùng router) hoặc <i>direct mode</i> (laptop nối thẳng access-point của robot). Bridge khởi tạo bằng <code>robot.initialize(conn_type="sta"|"ap")</code>.</li>
+      <li><b>Cách nhận JSON:</b> bridge mở 1 HTTP endpoint nhỏ (FastAPI) <code>POST /execute</code> nhận <code>{ "commands": [...] }</code> — <b>đúng response của API ở §4</b>. <b>Client</b> (web) sau khi nhận JSON từ backend sẽ POST sang URL của bridge; backend đứng ngoài. Sau có thể đổi sang MQTT/WebSocket nếu cần.</li>
+      <li><b>Vocabulary chung:</b> JSON từ backend là tập lệnh trừu tượng (vd 5 action MVP, sau thêm <code>fire</code>/<code>aim</code>…). Bridge nào không hỗ trợ 1 action thì <b>bỏ qua + log</b>, không lỗi cả chuỗi.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Ánh xạ lệnh: JSON <code>action</code> → DJI SDK (time-based)</h3>
+    <p class="small muted" style="margin-top:0">Lệnh MVP là <b>time-based</b> (<code>duration</code> giây) nên dùng <code>chassis.drive_speed()</code> (chạy liên tục) + <code>sleep(duration)</code> + dừng — KHÔNG dùng <code>chassis.move()</code> (cần quãng đường/góc chính xác, phải có encoder).</p>
+    <table>
+      <tr><th>action</th><th>Bộ phận</th><th>Gọi SDK (ý niệm)</th></tr>
+      <tr><td><code>forward</code></td><td>chassis (khung gầm)</td><td><code>drive_speed(x=+SPEED, y=0, z=0)</code> → sleep(duration)</td></tr>
+      <tr><td><code>backward</code></td><td>chassis</td><td><code>drive_speed(x=-SPEED, y=0, z=0)</code></td></tr>
+      <tr><td><code>left</code></td><td>chassis</td><td><code>drive_speed(x=0, y=0, z=-TURN)</code> &nbsp;(<code>z</code> = tốc độ quay °/s)</td></tr>
+      <tr><td><code>right</code></td><td>chassis</td><td><code>drive_speed(x=0, y=0, z=+TURN)</code></td></tr>
+      <tr><td><code>stop</code></td><td>chassis</td><td><code>drive_speed(0,0,0)</code> / <code>chassis.stop()</code></td></tr>
+    </table>
+    <p class="small muted" style="margin-bottom:0"><code>SPEED</code> (vd 0.5 m/s) &amp; <code>TURN</code> (vd 45 °/s) là hằng số cấu hình trong bridge. Dấu của <code>z</code> (trái/phải) tùy chiều trục thực tế — <b>kiểm tra khi test, đừng tin lý thuyết</b>.</p>
+  </div>
+
+  <div class="card">
+    <h3>Khung code bridge (phác thảo)</h3>
+    <pre><code>from robomaster import robot
+import time
+
+ep = robot.Robot()
+ep.initialize(conn_type="sta")          # cùng Wi-Fi với robot
+chassis = ep.chassis
+SPEED, TURN = 0.5, 45                    # m/s , °/s
+
+def run(commands):
+    for c in commands:
+        a, dur = c["action"], c.get("duration", 0)
+        if   a == "forward":  chassis.drive_speed(x= SPEED, y=0, z=0)
+        elif a == "backward": chassis.drive_speed(x=-SPEED, y=0, z=0)
+        elif a == "left":     chassis.drive_speed(x=0, y=0, z=-TURN)
+        elif a == "right":    chassis.drive_speed(x=0, y=0, z= TURN)
+        elif a == "stop":     chassis.drive_speed(0, 0, 0); continue
+        time.sleep(dur)
+        chassis.drive_speed(0, 0, 0)     # dừng giữa mỗi bước cho an toàn
+    chassis.drive_speed(0, 0, 0)         # chốt: luôn dừng khi xong</code></pre>
+    <p class="small muted" style="margin-bottom:0">Bọc <code>run()</code> sau endpoint FastAPI <code>POST /execute</code>: trả <code>202</code> ngay (fire-and-forget) rồi chạy <code>run()</code> ở background task. <b>Validate lại</b> bằng cùng schema (action hợp lệ, duration ≤ trần) trước khi truyền cho robot — không tin input mù quáng.</p>
+  </div>
+
+  <div class="card">
+    <h3>Cột mốc lớp thực thi</h3>
+    <table>
+      <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th></tr>
+      <tr><td>E1</td><td>Kết nối SDK</td><td><code>pip install robomaster</code>, <code>initialize()</code>, chạy thử 1 lệnh <code>drive_speed</code> rồi stop</td><td>Robot nhúc nhích bằng script tay</td></tr>
+      <tr><td>E2</td><td>Bridge nhận JSON <span class="badge rec">✅ Scaffold</span></td><td><code>apps/bridge</code>: FastAPI <code>POST /execute</code> → validate → trả <code>202</code> → <code>run(commands)</code> nền. Có <code>/stop</code> (E-STOP) &amp; <code>BRIDGE_DRY_RUN</code> để test không cần robot.</td><td>curl gửi <code>commands</code> → robot chạy đúng chuỗi</td></tr>
+      <tr><td>E3</td><td>Client forward <span class="badge rec">✅ Done</span></td><td><b>Client</b> nhận JSON từ backend rồi POST sang bridge <code>/execute</code>; có toggle “Tự chạy”, nút “Thực thi” &amp; E-STOP. Backend không đổi.</td><td>Nói tiếng Việt → robot chạy thật (end-to-end)</td></tr>
+      <tr><td>E4</td><td>An toàn ⚠️</td><td>E-STOP, auto-stop/timeout, trần <code>duration</code>, watchdog mất kết nối</td><td>Không bao giờ chạy mất kiểm soát</td></tr>
+    </table>
+    <p class="small muted" style="margin-bottom:0">Vẫn còn 1 open question nhỏ: <b>nguồn schema chung</b> — backend (Zod/TS) &amp; bridge (Python) đang định nghĩa lệnh ở 2 nơi. Cân nhắc 1 file JSON Schema làm nguồn duy nhất, sinh ra cả 2 phía, để 2 bên không lệch nhau. (Chưa cần làm ngay khi chỉ có 1 bridge.)</p>
+  </div>
+
+  <div class="card">
+    <h3>Rủi ro &amp; lưu ý lớp thực thi</h3>
+    <ul class="clean small">
+      <li><b>⚠️ SDK với RoboMaster S1:</b> lib <code>robomaster</code> chính thức hỗ trợ <b>EP</b>; <b>S1 thường phải bật "SDK mode"</b> (qua app RoboMaster / mở khóa chế độ kết nối) thì <code>initialize()</code> mới nối được. <b>Xác minh kết nối ở E1 trước</b>; trong lúc đó dùng <code>BRIDGE_DRY_RUN=1</code> để dev mọi thứ khác.</li>
+      <li><b>An toàn vật lý #1:</b> luôn có <b>E-STOP</b> + auto-stop sau mỗi bước; giới hạn <code>duration</code> tối đa (vd ≤ 10s) ngay trong bridge. Robot chạy thật → lỗi phần mềm = hư hỏng/va chạm thật.</li>
+      <li><b>Mạng Wi-Fi:</b> robot &amp; PC phải cùng mạng. Direct mode ổn định hơn nhưng PC mất internet. Mất kết nối giữa chừng → robot <b>phải tự dừng</b> (watchdog).</li>
+      <li><b>Độ trễ cộng dồn:</b> STT + LLM + mạng → lệnh tới robot trễ vài giây. Hợp lệnh tuần tự (“tiến rồi quẹo phải”), KHÔNG hợp điều khiển realtime kiểu joystick.</li>
+      <li><b>Mở rộng Súng / Gimbal / Camera:</b> thêm action mới (vd <code>fire</code>, <code>aim</code>, <code>look</code>) → map sang <code>ep.blaster.fire()</code>, <code>ep.gimbal.moveto()</code>, <code>ep.camera</code>. Nhớ mở rộng cả <code>z.enum([...])</code> ở API (§4b) cho khớp.</li>
+    </ul>
+  </div>
+
   <hr class="soft">
-  <p class="small muted">✅ <b>Tất cả quyết định đã chốt.</b> Stack: Groq (Whisper STT + Llama 3.3 70B) · NestJS API · API key header · JSON cơ bản (<code>action</code>+<code>duration</code>) · tiếng Việt + 5 action cố định. Sẵn sàng code <b>M1–M3</b> (khung API + text→JSON + STT endpoint). Chỉ cần 1 Groq API key để bắt đầu.</p>
+  <p class="small muted">✅ <b>Tất cả quyết định đã chốt.</b> Stack: Groq (Whisper STT + Llama 3.3 70B) · NestJS API · API key header · JSON cơ bản (<code>action</code>+<code>duration</code>) · tiếng Việt + 5 action cố định. <b>MVP (M1–M5) đã hoàn thành</b> trong code (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp: <b>§8 · Cầu nối DJI</b> (E1–E4) — Python bridge + <code>robomaster</code> SDK để JSON điều khiển robot thật qua Wi-Fi.</p>
 
 </div>
 </body>

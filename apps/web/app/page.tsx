@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api/v1';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? '';
+// The bridge (apps/bridge) is a separate service; the CLIENT forwards JSON to it.
+const BRIDGE_URL = process.env.NEXT_PUBLIC_BRIDGE_URL ?? 'http://localhost:8000';
+
+interface Command {
+  action: string;
+  duration?: number;
+}
 
 export default function Home() {
   const [text, setText] = useState('cho xe chạy tới một đoạn rồi quẹo phải');
@@ -11,6 +18,11 @@ export default function Home() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
+
+  // Robot bridge state.
+  const [commands, setCommands] = useState<Command[]>([]);
+  const [autoRun, setAutoRun] = useState(true);
+  const [bridgeMsg, setBridgeMsg] = useState('');
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -27,6 +39,8 @@ export default function Home() {
   async function call(path: string, init: RequestInit) {
     setLoading(true);
     setResult('');
+    setBridgeMsg('');
+    setCommands([]);
     try {
       const res = await fetch(`${API_BASE}${path}`, {
         ...init,
@@ -35,10 +49,47 @@ export default function Home() {
       const json = await res.json();
       setTranscript(typeof json.original_text === 'string' ? json.original_text : '');
       setResult(JSON.stringify(json, null, 2));
+
+      const cmds: Command[] = Array.isArray(json.commands) ? json.commands : [];
+      if (json.status === 'success' && cmds.length) {
+        setCommands(cmds);
+        if (autoRun) await executeOnRobot(cmds);
+      }
     } catch (err) {
       setResult(`Error: ${String(err)}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  /** Forward validated commands to the bridge (fire-and-forget → 202). */
+  async function executeOnRobot(cmds: Command[]) {
+    setBridgeMsg('Đang gửi lệnh xuống robot…');
+    try {
+      const res = await fetch(`${BRIDGE_URL}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commands: cmds }),
+      });
+      if (res.status === 409) {
+        setBridgeMsg('⚠️ Robot đang bận chạy chuỗi trước — thử lại sau.');
+        return;
+      }
+      const j = await res.json().catch(() => ({}));
+      setBridgeMsg(`🤖 Robot đã nhận ${j.steps ?? cmds.length} bước (HTTP ${res.status}).`);
+    } catch (err) {
+      setBridgeMsg(`Không gọi được bridge (${BRIDGE_URL}). Bridge đã chạy chưa? — ${String(err)}`);
+    }
+  }
+
+  /** Independent E-STOP. */
+  async function stopRobot() {
+    setBridgeMsg('Đang gửi E-STOP…');
+    try {
+      await fetch(`${BRIDGE_URL}/stop`, { method: 'POST' });
+      setBridgeMsg('⏹ Đã gửi E-STOP — robot dừng.');
+    } catch (err) {
+      setBridgeMsg(`E-STOP lỗi: ${String(err)}`);
     }
   }
 
@@ -215,6 +266,40 @@ export default function Home() {
         <pre className="min-h-32 overflow-auto rounded-xl border border-slate-800 bg-black p-4 text-xs text-emerald-300">
           {result || '—'}
         </pre>
+      </section>
+
+      {/* Robot bridge — forward JSON to apps/bridge → physical movement */}
+      <section className="flex flex-col gap-3 rounded-xl border border-amber-900 bg-amber-950/30 p-5">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-amber-300">Robot (qua bridge)</label>
+          <label className="flex items-center gap-2 text-xs text-slate-300">
+            <input
+              type="checkbox"
+              checked={autoRun}
+              onChange={(e) => setAutoRun(e.target.checked)}
+            />
+            Tự chạy robot khi có lệnh
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => executeOnRobot(commands)}
+            disabled={loading || commands.length === 0}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold hover:bg-amber-500 disabled:opacity-50"
+          >
+            ▶ Thực thi trên robot{commands.length ? ` (${commands.length} bước)` : ''}
+          </button>
+          <button
+            onClick={stopRobot}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-500"
+          >
+            ⏹ E-STOP
+          </button>
+        </div>
+
+        {bridgeMsg && <p className="text-sm text-amber-200">{bridgeMsg}</p>}
+        <p className="text-xs text-slate-500">Bridge: {BRIDGE_URL}</p>
       </section>
     </main>
   );

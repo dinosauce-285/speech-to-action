@@ -23,3 +23,9 @@ npm-debug.log*
 *.tsbuildinfo
 coverage/
 .turbo/
+
+# python (apps/bridge)
+__pycache__/
+*.py[cod]
+.venv/
+venv/

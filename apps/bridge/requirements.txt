@@ -1,0 +1,5 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+# DJI RoboMaster SDK. Officially targets RoboMaster EP; S1 may require enabling
+# SDK mode (see README). Not needed when BRIDGE_DRY_RUN=1.
+robomaster>=0.1.1.68

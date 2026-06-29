@@ -5,7 +5,13 @@ movement commands. **The product is the API**; the web app is just a test client
 
 ```
 voice → (MediaRecorder) → API → Groq Whisper (STT) → Groq Llama (intent) → Zod validate → JSON
+                                                                                   │
+                                          client forwards JSON ──▶ Bridge ──Wi-Fi──▶ DJI RoboMaster S1
 ```
+
+The API stays **platform-neutral** (just emits abstract JSON). A separate, decoupled
+**bridge** (`apps/bridge`, Python) translates that JSON into DJI SDK calls — the client
+forwards the JSON to it, so the backend never knows about the hardware.
 
 See [plan.html](plan.html) for the full design and decisions.
 
@@ -47,12 +53,19 @@ speech-to-action/
 │  │  │     └─ command.schema.ts    # Zod schema + types (action + duration)
 │  │  └─ .env.example            # PORT, API_KEY, GROQ_API_KEY, model names
 │  │
-│  └─ web/                       # Next.js — CHỈ là client để test API
-│     ├─ app/
-│     │  ├─ page.tsx             # UI: gửi text, ghi âm, visualizer, hiện transcript
-│     │  ├─ layout.tsx
-│     │  └─ globals.css
-│     └─ .env.example            # NEXT_PUBLIC_API_BASE_URL, NEXT_PUBLIC_API_KEY
+│  ├─ web/                       # Next.js — CHỈ là client để test API
+│  │  ├─ app/
+│  │  │  ├─ page.tsx             # UI: gửi text, ghi âm, visualizer, transcript + điều khiển robot
+│  │  │  ├─ layout.tsx
+│  │  │  └─ globals.css
+│  │  └─ .env.example            # NEXT_PUBLIC_API_BASE_URL, _API_KEY, _BRIDGE_URL
+│  │
+│  └─ bridge/                    # Python — LỚP THỰC THI, tách rời backend (DJI RoboMaster S1)
+│     ├─ main.py                 # FastAPI: POST /execute (202, fire-and-forget), /stop (E-STOP), /health
+│     ├─ executor.py            # map action → robomaster chassis.drive_speed; trần duration; E-STOP
+│     ├─ requirements.txt
+│     ├─ .env.example            # BRIDGE_CONN_TYPE, SPEED/TURN/MAX_DURATION, BRIDGE_DRY_RUN
+│     └─ README.md
 │
 ├─ plan.html                     # bản thiết kế đầy đủ + các quyết định đã chốt
 ├─ pnpm-workspace.yaml           # khai báo apps/* là workspace
@@ -116,6 +129,24 @@ cp apps/web/.env.example apps/web/.env.local
 pnpm dev:api   # http://localhost:3001/api/v1
 pnpm dev:web   # http://localhost:3000
 ```
+
+### Full pipeline (voice → robot)
+
+Start the bridge too (separate Python service). It defaults to `BRIDGE_DRY_RUN=1`,
+so you can run the **whole pipeline without a robot** — commands are just logged.
+
+```bash
+cd apps/bridge
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env                       # BRIDGE_DRY_RUN=1 by default
+uvicorn main:app --port 8000 --env-file .env
+```
+
+Then open the web client: speak a command → it transcribes → returns JSON → the client
+auto-forwards it to the bridge (toggle "Tự chạy") → bridge drives the robot. Use the
+red **E-STOP** button to halt anytime. To drive a real **DJI RoboMaster S1**, set
+`BRIDGE_DRY_RUN=0` and enable SDK mode on the robot — see [apps/bridge/README.md](apps/bridge/README.md).
 
 ## API
 
