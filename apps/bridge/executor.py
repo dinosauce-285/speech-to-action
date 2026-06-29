@@ -18,19 +18,50 @@ import threading
 log = logging.getLogger("bridge.executor")
 
 # --- Tunables (override via env) -------------------------------------------
-SPEED = float(os.getenv("BRIDGE_SPEED", "0.5"))           # m/s, forward/backward
-TURN = float(os.getenv("BRIDGE_TURN", "45"))              # deg/s, left/right
+SPEED = float(os.getenv("BRIDGE_SPEED", "0.5"))           # m/s at 100% speed (fwd/back)
+TURN = float(os.getenv("BRIDGE_TURN", "90"))              # deg/s at 100% speed (left/right)
 MAX_DURATION = float(os.getenv("BRIDGE_MAX_DURATION", "10"))  # safety cap per step (s)
+DEFAULT_SPEED_PCT = float(os.getenv("BRIDGE_DEFAULT_SPEED_PCT", "60"))  # when speed omitted
+# Wheel rotations/sec at full speed — used to APPROXIMATE degrees/rotations as
+# time, since this bridge is time-based (drive_speed), not encoder-based.
+ROT_PER_SEC = float(os.getenv("BRIDGE_ROT_PER_SEC", "1.0"))
 CONN_TYPE = os.getenv("BRIDGE_CONN_TYPE", "sta")          # "sta" (router) | "ap" (direct)
 DRY_RUN = os.getenv("BRIDGE_DRY_RUN", "0") == "1"         # run without hardware/SDK
 
-# action -> (x, y, z) for chassis.drive_speed. "stop" is handled separately.
-VECTORS = {
-    "forward": (SPEED, 0.0, 0.0),
-    "backward": (-SPEED, 0.0, 0.0),
-    "left": (0.0, 0.0, -TURN),   # NOTE: sign of z (turn direction) is firmware-
-    "right": (0.0, 0.0, TURN),   #       dependent — verify on real hardware.
+# action -> unit (x, y, z) direction; magnitude (SPEED/TURN × speed%) applied later.
+# "stop" is handled separately.
+UNIT = {
+    "forward": (1.0, 0.0, 0.0),
+    "backward": (-1.0, 0.0, 0.0),
+    "left": (0.0, 0.0, -1.0),    # NOTE: sign of z (turn direction) is firmware-
+    "right": (0.0, 0.0, 1.0),    #       dependent — verify on real hardware.
 }
+
+
+def _speed_factor(c: dict) -> float:
+    """`speed` 0–100 (%) → 0..1; default when the command omits it."""
+    pct = c.get("speed")
+    pct = DEFAULT_SPEED_PCT if pct is None else float(pct)
+    return max(0.0, min(100.0, pct)) / 100.0
+
+
+def _seconds(c: dict) -> float:
+    """How long to run this step. Mirrors the API contract:
+    seconds | degrees | rotations are mutually exclusive; default 1s.
+    degrees/rotations are wheel travel → approximated to time (ROT_PER_SEC)
+    because this bridge has no encoder."""
+    if c.get("seconds") is not None:
+        return float(c["seconds"])
+    if c.get("duration") is not None:  # legacy/back-compat
+        return float(c["duration"])
+    rotations = None
+    if c.get("rotations") is not None:
+        rotations = float(c["rotations"])
+    elif c.get("degrees") is not None:
+        rotations = float(c["degrees"]) / 360.0
+    if rotations is not None and ROT_PER_SEC > 0:
+        return rotations / ROT_PER_SEC
+    return 1.0  # API default when no measure is given
 
 
 class RobotExecutor:
@@ -91,12 +122,14 @@ class RobotExecutor:
                     if action == "stop":
                         self._drive(0.0, 0.0, 0.0)
                         continue
-                    vec = VECTORS.get(action)
-                    if vec is None:
+                    unit = UNIT.get(action)
+                    if unit is None:
                         log.warning("Skipping unsupported action: %r", action)
                         continue
-                    duration = min(float(c.get("duration") or 0.0), MAX_DURATION)
-                    self._drive(*vec)
+                    factor = _speed_factor(c)
+                    ux, uy, uz = unit
+                    self._drive(ux * SPEED * factor, uy * SPEED * factor, uz * TURN * factor)
+                    duration = min(_seconds(c), MAX_DURATION)
                     # Interruptible sleep so E-STOP cuts in within ms, not after the step.
                     self._stop.wait(timeout=duration)
                     self._drive(0.0, 0.0, 0.0)  # stop between steps for safety

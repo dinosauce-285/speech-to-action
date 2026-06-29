@@ -26,7 +26,7 @@ uvicorn main:app --port 8000 --env-file .env
 ```bash
 curl -X POST http://localhost:8000/execute \
   -H 'Content-Type: application/json' \
-  -d '{"commands":[{"action":"forward","duration":2},{"action":"right","duration":1}]}'
+  -d '{"commands":[{"action":"forward","speed":90,"seconds":2},{"action":"right","degrees":90}]}'
 # -> 202 {"status":"accepted","steps":2}; watch the server log for drive_speed lines
 
 curl -X POST http://localhost:8000/stop    # E-STOP
@@ -44,19 +44,24 @@ curl http://localhost:8000/health
 Request body matches the API response (`§4` of the plan):
 
 ```json
-{ "commands": [ { "action": "forward", "duration": 2 }, { "action": "right", "duration": 1 } ] }
+{ "commands": [ { "action": "forward", "speed": 90, "seconds": 2 }, { "action": "right", "degrees": 90 } ] }
 ```
 
 ## Action mapping (time-based)
 
-| action     | chassis call                          |
-|------------|---------------------------------------|
-| `forward`  | `drive_speed(x=+SPEED, y=0, z=0)`     |
-| `backward` | `drive_speed(x=-SPEED, y=0, z=0)`     |
-| `left`     | `drive_speed(x=0, y=0, z=-TURN)`      |
-| `right`    | `drive_speed(x=0, y=0, z=+TURN)`      |
-| `stop`     | `drive_speed(0, 0, 0)`                |
+Each step runs at `SPEED`/`TURN` scaled by `speed%` (default `BRIDGE_DEFAULT_SPEED_PCT`),
+for a duration derived from the command's measure:
 
+| action     | chassis call (factor = speed%/100)        |
+|------------|-------------------------------------------|
+| `forward`  | `drive_speed(x=+SPEED·factor, y=0, z=0)`  |
+| `backward` | `drive_speed(x=-SPEED·factor, y=0, z=0)`  |
+| `left`     | `drive_speed(x=0, y=0, z=-TURN·factor)`   |
+| `right`    | `drive_speed(x=0, y=0, z=+TURN·factor)`   |
+| `stop`     | `drive_speed(0, 0, 0)`                     |
+
+Duration: `seconds` if given; else `degrees`/`rotations` (wheel travel) are
+**approximated** to time via `BRIDGE_ROT_PER_SEC` (no encoder); else default 1s.
 Unsupported actions are **skipped + logged**, never fatal (shared vocabulary).
 
 ## ⚠️ RoboMaster S1 + SDK caveat

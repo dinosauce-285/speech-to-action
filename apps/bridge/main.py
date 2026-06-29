@@ -48,7 +48,11 @@ class Command(BaseModel):
     # `action` is a free string on purpose: vocabulary is shared across platforms,
     # and the executor skips actions this bridge doesn't support (logs, no error).
     action: str
-    duration: Optional[float] = Field(default=None, gt=0)  # seconds; omitted for "stop"
+    speed: Optional[float] = None                          # 0–100 (%)
+    seconds: Optional[float] = Field(default=None, gt=0)   # one "how much" measure…
+    degrees: Optional[float] = Field(default=None, gt=0)   # …wheel travel
+    rotations: Optional[float] = Field(default=None, gt=0)
+    duration: Optional[float] = Field(default=None, gt=0)  # legacy/back-compat
 
 
 class ExecuteRequest(BaseModel):
