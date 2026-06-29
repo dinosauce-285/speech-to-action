@@ -143,13 +143,37 @@ curl -X POST http://localhost:3001/api/v1/robot/command/audio \
 ```json
 {
   "status": "success",
-  "original_text": "cho xe chạy tới một đoạn rồi quẹo phải",
+  "original_text": "chạy tới thật nhanh trong 3 giây rồi quẹo phải 90 độ",
   "commands": [
-    { "action": "forward", "duration": 2 },
-    { "action": "right", "duration": 1 }
+    { "action": "forward", "speed": 90, "seconds": 3 },
+    { "action": "right", "degrees": 90 }
   ]
 }
 ```
 
 Allowed actions (closed set): `forward`, `backward`, `left`, `right`, `stop`.
-Out-of-scope or unparseable input returns `{ "status": "error", "commands": [], "reason": ... }`.
+
+Each command may carry optional parameters:
+
+| Field | Meaning |
+| ----- | ------- |
+| `speed` | Motor power, percent `0–100`. Words like *nhanh/chậm* are mapped to a number. Omitted ⇒ hardware default. |
+| `seconds` | Run for N seconds. |
+| `degrees` | Run until the **wheels** rotate N degrees (`360` = one wheel turn). |
+| `rotations` | Run until the **wheels** complete N rotations (`1` = `360` degrees). |
+
+`seconds` / `degrees` / `rotations` are **mutually exclusive** — at most one per command (it's the "how much" measure). `degrees`/`rotations` are *wheel* travel, **not** the car's heading; `stop` carries no params. When no measure is given, `seconds: 1` is the default.
+
+### Out of scope (all-or-nothing)
+
+If **any** part of the utterance can't be done with the 5 actions — a body-heading turn (`quay đầu`, `đánh lái 45°`), a curved path (`đi vòng tròn`), an absolute distance (`đi 2 mét`), or a non-driving action (`bấm còi`) — the **whole** command is rejected (no partial execution), and the un-doable phrases are listed:
+
+```json
+{
+  "status": "error",
+  "original_text": "đi tới rồi quay đầu lại",
+  "commands": [],
+  "unsupported": ["quay đầu lại"],
+  "reason": "Robot không làm được \"quay đầu lại\" nên không thực hiện câu lệnh này."
+}
+```
