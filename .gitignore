@@ -14,6 +14,9 @@ next-env.d.ts
 .env.local
 .env.*.local
 
+# esp32 firmware secrets (Arduino can't read .env — see secrets.example.h)
+apps/bridge/esp32/secrets.h
+
 # logs
 *.log
 npm-debug.log*
