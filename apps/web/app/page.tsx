@@ -21,7 +21,6 @@ export default function Home() {
 
   // Robot bridge state.
   const [commands, setCommands] = useState<Command[]>([]);
-  const [autoRun, setAutoRun] = useState(true);
   const [bridgeMsg, setBridgeMsg] = useState('');
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -53,7 +52,7 @@ export default function Home() {
       const cmds: Command[] = Array.isArray(json.commands) ? json.commands : [];
       if (json.status === 'success' && cmds.length) {
         setCommands(cmds);
-        if (autoRun) await executeOnRobot(cmds);
+        await executeOnRobot(cmds); // voice → JSON → robot, always auto-run
       }
     } catch (err) {
       setResult(`Error: ${String(err)}`);
@@ -79,17 +78,6 @@ export default function Home() {
       setBridgeMsg(`🤖 Robot đã nhận ${j.steps ?? cmds.length} bước (HTTP ${res.status}).`);
     } catch (err) {
       setBridgeMsg(`Không gọi được bridge (${BRIDGE_URL}). Bridge đã chạy chưa? — ${String(err)}`);
-    }
-  }
-
-  /** Independent E-STOP. */
-  async function stopRobot() {
-    setBridgeMsg('Đang gửi E-STOP…');
-    try {
-      await fetch(`${BRIDGE_URL}/stop`, { method: 'POST' });
-      setBridgeMsg('⏹ Đã gửi E-STOP — robot dừng.');
-    } catch (err) {
-      setBridgeMsg(`E-STOP lỗi: ${String(err)}`);
     }
   }
 
@@ -270,17 +258,7 @@ export default function Home() {
 
       {/* Robot bridge — forward JSON to apps/bridge → physical movement */}
       <section className="flex flex-col gap-3 rounded-xl border border-amber-900 bg-amber-950/30 p-5">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-amber-300">Robot (qua bridge)</label>
-          <label className="flex items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={autoRun}
-              onChange={(e) => setAutoRun(e.target.checked)}
-            />
-            Tự chạy robot khi có lệnh
-          </label>
-        </div>
+        <label className="text-sm font-medium text-amber-300">Robot (qua bridge)</label>
 
         <div className="flex flex-wrap gap-3">
           <button
@@ -289,12 +267,6 @@ export default function Home() {
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold hover:bg-amber-500 disabled:opacity-50"
           >
             ▶ Thực thi trên robot{commands.length ? ` (${commands.length} bước)` : ''}
-          </button>
-          <button
-            onClick={stopRobot}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-500"
-          >
-            ⏹ E-STOP
           </button>
         </div>
 
