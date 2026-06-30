@@ -91,7 +91,7 @@ Nói cách khác: endpoint audio = endpoint text + **1 bước STT cắm ở đ�
 
 ```
 [Web client]                    [NestJS API]                       [Groq]
-   │  🎙️ MediaRecorder ghi audio
+   │  MediaRecorder ghi audio
    │  (đồng thời vẽ visualizer)
    │ ── POST /command/audio (file + X-API-Key) ─▶
    │                          ① ApiKeyGuard: đúng key? sai → 401

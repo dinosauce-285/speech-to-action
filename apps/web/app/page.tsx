@@ -71,11 +71,11 @@ export default function Home() {
         body: JSON.stringify({ commands: cmds }),
       });
       if (res.status === 409) {
-        setBridgeMsg('⚠️ Robot đang bận chạy chuỗi trước — thử lại sau.');
+        setBridgeMsg('Robot đang bận chạy chuỗi trước — thử lại sau.');
         return;
       }
       const j = await res.json().catch(() => ({}));
-      setBridgeMsg(`🤖 Robot đã nhận ${j.steps ?? cmds.length} bước (HTTP ${res.status}).`);
+      setBridgeMsg(`Robot đã nhận ${j.steps ?? cmds.length} bước (HTTP ${res.status}).`);
     } catch (err) {
       setBridgeMsg(`Không gọi được bridge (${BRIDGE_URL}). Bridge đã chạy chưa? — ${String(err)}`);
     }
@@ -223,7 +223,7 @@ export default function Home() {
           }`}
         />
         {recording && (
-          <p className="text-xs text-emerald-400">● Đang nghe… hãy nói lệnh của bạn</p>
+          <p className="text-xs text-emerald-400">Đang nghe… hãy nói lệnh của bạn</p>
         )}
 
         <button
@@ -233,7 +233,7 @@ export default function Home() {
             recording ? 'bg-red-600 hover:bg-red-500' : 'bg-emerald-600 hover:bg-emerald-500'
           }`}
         >
-          {recording ? '⏹ Dừng & gửi' : '🎙️ Bắt đầu ghi'}
+          {recording ? 'Dừng & gửi' : 'Bắt đầu ghi'}
         </button>
       </section>
 
@@ -266,7 +266,7 @@ export default function Home() {
             disabled={loading || commands.length === 0}
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold hover:bg-amber-500 disabled:opacity-50"
           >
-            ▶ Thực thi trên robot{commands.length ? ` (${commands.length} bước)` : ''}
+            Thực thi trên robot{commands.length ? ` (${commands.length} bước)` : ''}
           </button>
         </div>
 

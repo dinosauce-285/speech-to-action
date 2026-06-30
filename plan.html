@@ -143,19 +143,19 @@
       <tr><th>Trong phạm vi (MVP)</th><th>Ngoài phạm vi / tùy chọn</th></tr>
       <tr>
         <td class="small">
-          <span class="scope-in">✓</span> Thu giọng nói trên web<br>
-          <span class="scope-in">✓</span> Speech-to-Text → văn bản<br>
-          <span class="scope-in">✓</span> Gửi text lên backend<br>
-          <span class="scope-in">✓</span> LLM phân tích ý định → JSON<br>
-          <span class="scope-in">✓</span> Validate schema JSON<br>
-          <span class="scope-in">✓</span> Trả JSON về frontend hiển thị
+          <span class="scope-in"></span> Thu giọng nói trên web<br>
+          <span class="scope-in"></span> Speech-to-Text → văn bản<br>
+          <span class="scope-in"></span> Gửi text lên backend<br>
+          <span class="scope-in"></span> LLM phân tích ý định → JSON<br>
+          <span class="scope-in"></span> Validate schema JSON<br>
+          <span class="scope-in"></span> Trả JSON về frontend hiển thị
         </td>
         <td class="small">
-          <span class="scope-out">○</span> Điều khiển xe / MQTT / EV3<br>
-          <span class="scope-out">○</span> Authentication (Firebase)<br>
-          <span class="scope-out">○</span> Lưu lịch sử / Macros (Supabase)<br>
-          <span class="scope-out">○</span> Multi-user, phân quyền<br>
-          <span class="scope-out">○</span> Mô phỏng 3D / animation xe
+          <span class="scope-out"></span> Điều khiển xe / MQTT / EV3<br>
+          <span class="scope-out"></span> Authentication (Firebase)<br>
+          <span class="scope-out"></span> Lưu lịch sử / Macros (Supabase)<br>
+          <span class="scope-out"></span> Multi-user, phân quyền<br>
+          <span class="scope-out"></span> Mô phỏng 3D / animation xe
         </td>
       </tr>
     </table>
@@ -166,15 +166,15 @@
   <h2 id="overview">1 · Kiến trúc tổng quan</h2>
   <div class="card">
     <div class="flow">
-      <div class="step"><div class="n">01</div><div class="t">🎙️ Thu âm</div><div class="d">MediaRecorder ghi audio + visualizer</div></div>
+      <div class="step"><div class="n">01</div><div class="t">Thu âm</div><div class="d">MediaRecorder ghi audio + visualizer</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">02</div><div class="t">🔌 Gửi audio</div><div class="d">POST file → NestJS</div></div>
+      <div class="step"><div class="n">02</div><div class="t">Gửi audio</div><div class="d">POST file → NestJS</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">03</div><div class="t">📝 STT</div><div class="d">NestJS → Groq Whisper → text</div></div>
+      <div class="step"><div class="n">03</div><div class="t">STT</div><div class="d">NestJS → Groq Whisper → text</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">04</div><div class="t">🧠 LLM</div><div class="d">Prompt → trích ý định</div></div>
+      <div class="step"><div class="n">04</div><div class="t">LLM</div><div class="d">Prompt → trích ý định</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">05</div><div class="t">✅ JSON</div><div class="d">Validate + trả về</div></div>
+      <div class="step"><div class="n">05</div><div class="t">JSON</div><div class="d">Validate + trả về</div></div>
     </div>
     <p class="small muted" style="margin-bottom:0">Nguyên tắc thiết kế: tách rõ <b>“hiểu ngôn ngữ”</b> (LLM tạo JSON) khỏi <b>“thực thi vật lý”</b>. Đổi xe EV3 → Arduino sau này không ảnh hưởng luồng tạo JSON.</p>
   </div>
@@ -280,13 +280,13 @@ X-API-Key: &lt;api_key&gt;
     </ul>
 
     <div class="opt" style="margin-top:8px; border-color: var(--accent-2)">
-      <div class="ohead">✅ MVP — chỉ 2 trường cơ bản <span class="badge rec">Dùng cái này</span></div>
+      <div class="ohead">MVP — chỉ 2 trường cơ bản <span class="badge rec">Dùng cái này</span></div>
       <div class="body">Tất cả time-based → <b>không cần encoder / cảm biến / la bàn</b>. Hợp với giọng nói mơ hồ ("chạy một đoạn", "quẹo phải"). Rẽ cũng tính bằng giây thay vì độ.</div>
     </div>
     <table>
       <tr><th>Tham số</th><th>Kiểu · đơn vị</th><th>Bắt buộc</th><th>Ý nghĩa</th></tr>
-      <tr><td><code>action</code></td><td>enum</td><td>✓</td><td><code>forward</code> · <code>backward</code> · <code>left</code> · <code>right</code> · <code>stop</code></td></tr>
-      <tr><td><code>duration</code></td><td>number · giây</td><td>✓ (trừ <code>stop</code>)</td><td>Chạy/rẽ trong bao nhiêu giây. <code>stop</code> thì không cần.</td></tr>
+      <tr><td><code>action</code></td><td>enum</td><td></td><td><code>forward</code> · <code>backward</code> · <code>left</code> · <code>right</code> · <code>stop</code></td></tr>
+      <tr><td><code>duration</code></td><td>number · giây</td><td>(trừ <code>stop</code>)</td><td>Chạy/rẽ trong bao nhiêu giây. <code>stop</code> thì không cần.</td></tr>
     </table>
 
     <h3>Zod schema — MVP</h3>
@@ -297,7 +297,7 @@ X-API-Key: &lt;api_key&gt;
 const Commands = z.array(Command);</code></pre>
 
     <details style="margin-top:14px">
-      <summary class="small muted" style="cursor:pointer">▸ Bộ tham số ĐẦY ĐỦ (mở rộng sau — không làm ở MVP)</summary>
+      <summary class="small muted" style="cursor:pointer">Bộ tham số ĐẦY ĐỦ (mở rộng sau — không làm ở MVP)</summary>
       <div style="margin-top:12px">
         <p class="small muted">Khi nối phần cứng thật & có cảm biến, mở rộng schema với các trường optional sau (vẫn tương thích ngược với MVP):</p>
         <table>
@@ -317,7 +317,7 @@ const Commands = z.array(Command);</code></pre>
   </div>
 
   <!-- OPEN QUESTIONS -->
-  <h2 id="questions">5 · Open Questions <span class="muted small">(tất cả đã chốt ✅)</span></h2>
+  <h2 id="questions">5 · Open Questions <span class="muted small">(tất cả đã chốt)</span></h2>
   <p class="legend">Q1 Groq Llama 3.3 70B · Q2 Groq Whisper · Q3 JSON cơ bản · Q4 retry 1 lần · Q5 API key · Q6 tiếng Việt + 5 action cố định.</p>
 
   <div class="q" id="q1" style="border-left-color: var(--accent-2)">
@@ -328,7 +328,7 @@ const Commands = z.array(Command);</code></pre>
         <li><b>Tham số:</b> <code>response_format: { type: "json_object" }</code>, <code>temperature: 0</code> để output ổn định.</li>
         <li><b>Giá:</b> ~$0.59/$0.79 per 1M token (in/out), context 131K — thừa cho prompt ngắn.</li>
         <li><b>Khởi đầu rẻ hơn:</b> có thể tạm dùng <code>llama-3.1-8b-instant</code> ($0.05/$0.08) rồi nâng lên 70B nếu thiếu chính xác.</li>
-        <li>⚠️ Tránh <code>qwen3-32b</code> &amp; <code>llama-4-scout-17b</code> (đã deprecate 17/06/2026).</li>
+        <li>Tránh <code>qwen3-32b</code> &amp; <code>llama-4-scout-17b</code> (đã deprecate 17/06/2026).</li>
       </ul>
       Nên bọc trong 1 service trừu tượng để đổi model/provider sau dễ dàng.
     </div>
@@ -381,14 +381,14 @@ const Commands = z.array(Command);</code></pre>
   <div class="card">
     <table>
       <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th><th>Trạng thái</th></tr>
-      <tr><td>M1</td><td>Khung API</td><td>Khởi tạo NestJS, endpoint rỗng <code>/command</code>, Guard <code>X-API-Key</code>, CORS</td><td>curl có key → 200, không key → 401</td><td><span class="badge rec">✅ Done</span></td></tr>
-      <tr><td>M2</td><td>Core text→JSON ⭐</td><td>Tích hợp LLM, System Prompt, Zod validate theo schema tham số đầy đủ</td><td>curl/Postman gửi text → nhận JSON đúng schema. <b>Đây là sản phẩm.</b></td><td><span class="badge rec">✅ Done</span></td></tr>
-      <tr><td>M3</td><td>STT endpoint</td><td><code>POST /command/audio</code>: nhận file → gọi Groq Whisper (<code>whisper-large-v3</code>, <code>vi</code>) → tái dùng lõi M2</td><td>curl gửi file audio tiếng Việt → nhận JSON</td><td><span class="badge rec">✅ Done</span></td></tr>
-      <tr><td>M4</td><td>Bền vững hóa API</td><td>Retry/self-correct khi validate fail, response lỗi chuẩn, rate-limit</td><td>API ổn định với câu nói mơ hồ / sai</td><td><span class="badge rec">✅ Done</span><br><span class="small muted">rate-limit để sau</span></td></tr>
-      <tr><td>M5</td><td>Client test</td><td>Nút micro + visualizer + <code>MediaRecorder</code> → gửi audio lên API → hiện JSON</td><td>Demo end-to-end voice→JSON</td><td><span class="badge rec">✅ Done</span></td></tr>
-      <tr><td>M6+</td><td>Tùy chọn</td><td>Firebase auth, Supabase log, mở rộng schema, MQTT</td><td>Sẵn sàng production / nối phần cứng</td><td><span class="badge alt">⏳ Sau</span></td></tr>
+      <tr><td>M1</td><td>Khung API</td><td>Khởi tạo NestJS, endpoint rỗng <code>/command</code>, Guard <code>X-API-Key</code>, CORS</td><td>curl có key → 200, không key → 401</td><td><span class="badge rec">Done</span></td></tr>
+      <tr><td>M2</td><td>Core text→JSON</td><td>Tích hợp LLM, System Prompt, Zod validate theo schema tham số đầy đủ</td><td>curl/Postman gửi text → nhận JSON đúng schema. <b>Đây là sản phẩm.</b></td><td><span class="badge rec">Done</span></td></tr>
+      <tr><td>M3</td><td>STT endpoint</td><td><code>POST /command/audio</code>: nhận file → gọi Groq Whisper (<code>whisper-large-v3</code>, <code>vi</code>) → tái dùng lõi M2</td><td>curl gửi file audio tiếng Việt → nhận JSON</td><td><span class="badge rec">Done</span></td></tr>
+      <tr><td>M4</td><td>Bền vững hóa API</td><td>Retry/self-correct khi validate fail, response lỗi chuẩn, rate-limit</td><td>API ổn định với câu nói mơ hồ / sai</td><td><span class="badge rec">Done</span><br><span class="small muted">rate-limit để sau</span></td></tr>
+      <tr><td>M5</td><td>Client test</td><td>Nút micro + visualizer + <code>MediaRecorder</code> → gửi audio lên API → hiện JSON</td><td>Demo end-to-end voice→JSON</td><td><span class="badge rec">Done</span></td></tr>
+      <tr><td>M6+</td><td>Tùy chọn</td><td>Firebase auth, Supabase log, mở rộng schema, MQTT</td><td>Sẵn sàng production / nối phần cứng</td><td><span class="badge alt">Sau</span></td></tr>
     </table>
-    <p class="small muted" style="margin-bottom:0">✅ <b>MVP (M1–M5) đã hoàn thành & xác minh trong code</b> (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp = lớp thực thi vật lý → <a href="#execution">§8 · Cầu nối DJI</a>.</p>
+    <p class="small muted" style="margin-bottom:0"><b>MVP (M1–M5) đã hoàn thành & xác minh trong code</b> (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp = lớp thực thi vật lý → <a href="#execution">§8 · Cầu nối DJI</a>.</p>
   </div>
 
   <!-- RISKS -->
@@ -427,13 +427,13 @@ const Commands = z.array(Command);</code></pre>
   <div class="card">
     <p class="small muted" style="margin:0">4 bước pipeline thực thi (lấy DJI làm ví dụ cho bridge đầu tiên):</p>
     <div class="flow">
-      <div class="step"><div class="n">01</div><div class="t">📤 Phát JSON</div><div class="d">API/AI gửi mảng <code>commands</code> vào “Trạm trung chuyển” (PC chạy Python)</div></div>
+      <div class="step"><div class="n">01</div><div class="t">Phát JSON</div><div class="d">API/AI gửi mảng <code>commands</code> vào “Trạm trung chuyển” (PC chạy Python)</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">02</div><div class="t">🔍 Parse</div><div class="d">Python bóc JSON: bộ phận nào (khung gầm / súng / camera) + làm gì (tiến, lùi, bắn)</div></div>
+      <div class="step"><div class="n">02</div><div class="t">Parse</div><div class="d">Python bóc JSON: bộ phận nào (khung gầm / súng / camera) + làm gì (tiến, lùi, bắn)</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">03</div><div class="t">🛰️ Dịch &amp; Truyền</div><div class="d">DJI SDK dịch sang mã máy của DJI → bắn qua sóng Wi-Fi</div></div>
+      <div class="step"><div class="n">03</div><div class="t">Dịch &amp; Truyền</div><div class="d">DJI SDK dịch sang mã máy của DJI → bắn qua sóng Wi-Fi</div></div>
       <div class="arrow">→</div>
-      <div class="step"><div class="n">04</div><div class="t">🤖 Thực thi</div><div class="d">Robot nhận sóng → quay bánh / nhả đạn ngoài đời thực</div></div>
+      <div class="step"><div class="n">04</div><div class="t">Thực thi</div><div class="d">Robot nhận sóng → quay bánh / nhả đạn ngoài đời thực</div></div>
     </div>
     <p class="small muted" style="margin-bottom:0">Nói nôm na: <b>Quăng JSON → PC dịch ra sóng Wi-Fi → Robot chạy.</b></p>
   </div>
@@ -498,9 +498,9 @@ def run(commands):
     <table>
       <tr><th>#</th><th>Cột mốc</th><th>Nội dung</th><th>Kết quả</th></tr>
       <tr><td>E1</td><td>Kết nối SDK</td><td><code>pip install robomaster</code>, <code>initialize()</code>, chạy thử 1 lệnh <code>drive_speed</code> rồi stop</td><td>Robot nhúc nhích bằng script tay</td></tr>
-      <tr><td>E2</td><td>Bridge nhận JSON <span class="badge rec">✅ Scaffold</span></td><td><code>apps/bridge</code>: FastAPI <code>POST /execute</code> → validate → trả <code>202</code> → <code>run(commands)</code> nền. Có <code>/stop</code> (E-STOP) &amp; <code>BRIDGE_DRY_RUN</code> để test không cần robot.</td><td>curl gửi <code>commands</code> → robot chạy đúng chuỗi</td></tr>
-      <tr><td>E3</td><td>Client forward <span class="badge rec">✅ Done</span></td><td><b>Client</b> nhận JSON từ backend rồi POST sang bridge <code>/execute</code>; có toggle “Tự chạy”, nút “Thực thi” &amp; E-STOP. Backend không đổi.</td><td>Nói tiếng Việt → robot chạy thật (end-to-end)</td></tr>
-      <tr><td>E4</td><td>An toàn ⚠️</td><td>E-STOP, auto-stop/timeout, trần <code>duration</code>, watchdog mất kết nối</td><td>Không bao giờ chạy mất kiểm soát</td></tr>
+      <tr><td>E2</td><td>Bridge nhận JSON <span class="badge rec">Scaffold</span></td><td><code>apps/bridge</code>: FastAPI <code>POST /execute</code> → validate → trả <code>202</code> → <code>run(commands)</code> nền. Có <code>/stop</code> (E-STOP) &amp; <code>BRIDGE_DRY_RUN</code> để test không cần robot.</td><td>curl gửi <code>commands</code> → robot chạy đúng chuỗi</td></tr>
+      <tr><td>E3</td><td>Client forward <span class="badge rec">Done</span></td><td><b>Client</b> nhận JSON từ backend rồi POST sang bridge <code>/execute</code>; có toggle “Tự chạy”, nút “Thực thi” &amp; E-STOP. Backend không đổi.</td><td>Nói tiếng Việt → robot chạy thật (end-to-end)</td></tr>
+      <tr><td>E4</td><td>An toàn</td><td>E-STOP, auto-stop/timeout, trần <code>duration</code>, watchdog mất kết nối</td><td>Không bao giờ chạy mất kiểm soát</td></tr>
     </table>
     <p class="small muted" style="margin-bottom:0">Vẫn còn 1 open question nhỏ: <b>nguồn schema chung</b> — backend (Zod/TS) &amp; bridge (Python) đang định nghĩa lệnh ở 2 nơi. Cân nhắc 1 file JSON Schema làm nguồn duy nhất, sinh ra cả 2 phía, để 2 bên không lệch nhau. (Chưa cần làm ngay khi chỉ có 1 bridge.)</p>
   </div>
@@ -508,7 +508,7 @@ def run(commands):
   <div class="card">
     <h3>Rủi ro &amp; lưu ý lớp thực thi</h3>
     <ul class="clean small">
-      <li><b>⚠️ SDK với RoboMaster S1:</b> lib <code>robomaster</code> chính thức hỗ trợ <b>EP</b>; <b>S1 thường phải bật "SDK mode"</b> (qua app RoboMaster / mở khóa chế độ kết nối) thì <code>initialize()</code> mới nối được. <b>Xác minh kết nối ở E1 trước</b>; trong lúc đó dùng <code>BRIDGE_DRY_RUN=1</code> để dev mọi thứ khác.</li>
+      <li><b>SDK với RoboMaster S1:</b> lib <code>robomaster</code> chính thức hỗ trợ <b>EP</b>; <b>S1 thường phải bật "SDK mode"</b> (qua app RoboMaster / mở khóa chế độ kết nối) thì <code>initialize()</code> mới nối được. <b>Xác minh kết nối ở E1 trước</b>; trong lúc đó dùng <code>BRIDGE_DRY_RUN=1</code> để dev mọi thứ khác.</li>
       <li><b>An toàn vật lý #1:</b> luôn có <b>E-STOP</b> + auto-stop sau mỗi bước; giới hạn <code>duration</code> tối đa (vd ≤ 10s) ngay trong bridge. Robot chạy thật → lỗi phần mềm = hư hỏng/va chạm thật.</li>
       <li><b>Mạng Wi-Fi:</b> robot &amp; PC phải cùng mạng. Direct mode ổn định hơn nhưng PC mất internet. Mất kết nối giữa chừng → robot <b>phải tự dừng</b> (watchdog).</li>
       <li><b>Độ trễ cộng dồn:</b> STT + LLM + mạng → lệnh tới robot trễ vài giây. Hợp lệnh tuần tự (“tiến rồi quẹo phải”), KHÔNG hợp điều khiển realtime kiểu joystick.</li>
@@ -517,7 +517,7 @@ def run(commands):
   </div>
 
   <hr class="soft">
-  <p class="small muted">✅ <b>Tất cả quyết định đã chốt.</b> Stack: Groq (Whisper STT + Llama 3.3 70B) · NestJS API · API key header · JSON cơ bản (<code>action</code>+<code>duration</code>) · tiếng Việt + 5 action cố định. <b>MVP (M1–M5) đã hoàn thành</b> trong code (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp: <b>§8 · Cầu nối DJI</b> (E1–E4) — Python bridge + <code>robomaster</code> SDK để JSON điều khiển robot thật qua Wi-Fi.</p>
+  <p class="small muted"><b>Tất cả quyết định đã chốt.</b> Stack: Groq (Whisper STT + Llama 3.3 70B) · NestJS API · API key header · JSON cơ bản (<code>action</code>+<code>duration</code>) · tiếng Việt + 5 action cố định. <b>MVP (M1–M5) đã hoàn thành</b> trong code (<code>apps/api</code> + <code>apps/web</code>). Bước kế tiếp: <b>§8 · Cầu nối DJI</b> (E1–E4) — Python bridge + <code>robomaster</code> SDK để JSON điều khiển robot thật qua Wi-Fi.</p>
 
 </div>
 </body>
