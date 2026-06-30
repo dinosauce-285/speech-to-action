@@ -6,12 +6,13 @@ movement commands. **The product is the API**; the web app is just a test client
 ```
 voice → (MediaRecorder) → API → Groq Whisper (STT) → Groq Llama (intent) → Zod validate → JSON
                                                                                    │
-                                          client forwards JSON ──▶ Bridge ──Wi-Fi──▶ DJI RoboMaster S1
+                                  client forwards JSON ──▶ Bridge ──MQTT──▶ ESP32 robot
 ```
 
 The API stays **platform-neutral** (just emits abstract JSON). A separate, decoupled
-**bridge** (`apps/bridge`, Python) translates that JSON into DJI SDK calls — the client
-forwards the JSON to it, so the backend never knows about the hardware.
+**bridge** (`apps/bridge`, Python) republishes that JSON onto **MQTT** — the client
+forwards the JSON to it, so the backend never knows about the hardware. An **ESP32**
+subscribes to the topic and drives the motors.
 
 See [plan.html](plan.html) for the full design and decisions.
 
@@ -60,11 +61,12 @@ speech-to-action/
 │  │  │  └─ globals.css
 │  │  └─ .env.example            # NEXT_PUBLIC_API_BASE_URL, _API_KEY, _BRIDGE_URL
 │  │
-│  └─ bridge/                    # Python — LỚP THỰC THI, tách rời backend (DJI RoboMaster S1)
-│     ├─ main.py                 # FastAPI: POST /execute (202, fire-and-forget), /stop (E-STOP), /health
-│     ├─ executor.py            # map action → robomaster chassis.drive_speed; trần duration; E-STOP
+│  └─ bridge/                    # Python — LỚP THỰC THI, tách rời backend (MQTT → ESP32)
+│     ├─ main.py                 # FastAPI: POST /execute (202), /stop (E-STOP), /health
+│     ├─ publisher.py           # normalize action+speed+seconds → publish MQTT topics
+│     ├─ esp32/esp32.ino        # ESP32 subscriber (Arduino IDE) — log-only mẫu
 │     ├─ requirements.txt
-│     ├─ .env.example            # BRIDGE_CONN_TYPE, SPEED/TURN/MAX_DURATION, BRIDGE_DRY_RUN
+│     ├─ .env.example            # BRIDGE_MQTT_* (host/port/topics), MAX_DURATION
 │     └─ README.md
 │
 ├─ plan.html                     # bản thiết kế đầy đủ + các quyết định đã chốt
@@ -132,21 +134,23 @@ pnpm dev:web   # http://localhost:3000
 
 ### Full pipeline (voice → robot)
 
-Start the bridge too (separate Python service). It defaults to `BRIDGE_DRY_RUN=1`,
-so you can run the **whole pipeline without a robot** — commands are just logged.
+Start the bridge too (separate Python service). It **boots without a broker** and
+retries in the background, so you can run the **whole pipeline before the robot
+exists** — `/execute` still returns 202 and logs the payload it would publish.
 
 ```bash
 cd apps/bridge
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate   # or any Python ≥3.9
 pip install -r requirements.txt
-cp .env.example .env                       # BRIDGE_DRY_RUN=1 by default
-uvicorn main:app --port 8000 --env-file .env
+cp .env.example .env                       # then set BRIDGE_MQTT_HOST/PORT
+uvicorn main:app --host 0.0.0.0 --port 8000 --env-file .env
 ```
 
 Then open the web client: speak a command → it transcribes → returns JSON → the client
-auto-forwards it to the bridge (toggle "Tự chạy") → bridge drives the robot. Use the
-red **E-STOP** button to halt anytime. To drive a real **DJI RoboMaster S1**, set
-`BRIDGE_DRY_RUN=0` and enable SDK mode on the robot — see [apps/bridge/README.md](apps/bridge/README.md).
+auto-forwards it to the bridge (toggle "Tự chạy") → bridge **publishes to MQTT** → the
+**ESP32** subscribes and drives the motors. Use the red **E-STOP** button to halt anytime.
+The ESP32 firmware (Arduino IDE, log-only starter) and the MQTT contract are in
+[apps/bridge/README.md](apps/bridge/README.md) and [apps/bridge/esp32/esp32.ino](apps/bridge/esp32/esp32.ino).
 
 ## API
 
